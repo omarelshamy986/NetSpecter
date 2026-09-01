@@ -1,19 +1,14 @@
 //! Audit-log viewer.
 //!
-//! Read-only view of the SHA-256-chained audit log. The page surfaces:
-//!
-//! - The current chain-head digest (the report auditor can pin this).
-//! - The operator handle recorded at consent.
-//! - A scrolling list of every entry, with timestamp + action + target.
-//! - A "Verify chain" button that walks the chain and reports tampering.
+//! Read-only view of the persisted audit log file (if any). The page
+//! surfaces the file path and the last few entries for transparency.
+//! Tamper detection and chain verification have been removed in v1.3.0.
 
 use gtk4::prelude::*;
 use gtk4::*;
 
 pub struct AuditLogPage {
     pub root: Box,
-    pub head_label: Label,
-    pub verify_btn: Button,
 }
 
 impl AuditLogPage {
@@ -32,31 +27,14 @@ impl AuditLogPage {
         root.append(&header);
 
         let description = Label::builder()
-            .label("Tamper-evident SHA-256-chained log of every operator action.\n\
-                    'Verify chain' walks the log and reports any inconsistency.")
+            .label("Read-only view of any persisted audit log file.\n\
+                    The file lives at ~/.netspecter/audit.log when present.")
             .halign(Align::Start)
             .wrap(true)
             .build();
         description.add_css_class("dim-label");
         root.append(&description);
 
-        // Chain head + verify button.
-        let head_box = Box::new(Orientation::Horizontal, 8);
-        head_box.set_margin_top(8);
-        head_box.append(&Label::new(Some("Chain head:")));
-        let head_label = Label::new(Some("—"));
-        head_label.set_selectable(true);
-        head_label.add_css_class("monospace");
-        head_label.set_hexpand(true);
-        head_box.append(&head_label);
-
-        let verify_btn = Button::with_label("Verify chain");
-        verify_btn.set_icon_name("dialog-ok-symbolic");
-        head_box.append(&verify_btn);
-
-        root.append(&head_box);
-
-        // Entry list (read-only).
         let list = ListBox::new();
         let scrolled = ScrolledWindow::builder()
             .hscrollbar_policy(PolicyType::Never)
@@ -66,7 +44,7 @@ impl AuditLogPage {
         scrolled.set_child(Some(&list));
         root.append(&scrolled);
 
-        Self { root, head_label, verify_btn }
+        Self { root }
     }
 }
 

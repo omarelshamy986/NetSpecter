@@ -111,17 +111,6 @@ pub struct WizardPlan {
     pub rationale: String,
 }
 
-// ──────────────────────── Consent ────────────────────────
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ConsentRecord {
-    pub operator: String,
-    pub scope: String,
-    pub rules_of_engagement: String,
-    pub agreed_at: String,
-    pub record_digest: String,
-}
-
 // ──────────────────────── Report ────────────────────────
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -199,19 +188,5 @@ mod tests {
         };
         let j = serde_json::to_string(&t).unwrap();
         assert!(!j.contains("hidden_recovery")); // skipped via Option
-    }
-
-    #[test]
-    fn consent_record_round_trips() {
-        let c = ConsentRecord {
-            operator: "abdo".into(),
-            scope: "essid:Office".into(),
-            rules_of_engagement: "ROE-001".into(),
-            agreed_at: "2026-01-01T00:00:00Z".into(),
-            record_digest: "abcd".into(),
-        };
-        let j = serde_json::to_string(&c).unwrap();
-        let back: ConsentRecord = serde_json::from_str(&j).unwrap();
-        assert_eq!(back.operator, "abdo");
     }
 }

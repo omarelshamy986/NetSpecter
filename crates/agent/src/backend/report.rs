@@ -21,8 +21,6 @@
 //! HTML uses Handlebars (`handlebars` crate) with the template at
 //! `templates/report-html.hbs`. JSON is straightforward serde.
 
-use crate::backend::consent::ConsentRecord;
-use crate::backend::wizard::WizardPlan;
 use airgorah_common::encryption::Encryption;
 use airgorah_common::types::*;
 use chrono::{DateTime, Utc};
@@ -96,7 +94,7 @@ pub struct Report {
     pub targets: Vec<TargetReport>,
     pub findings: Vec<Finding>,
     pub audit_chain_digest: String,
-    pub wizard_plans: Vec<WizardPlan>,
+    pub wizard_plans: Vec<netspecter_common::ipc::WizardPlan>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -274,20 +272,20 @@ pub fn auto_findings(report: &Report) -> Vec<Finding> {
     findings
 }
 
-/// Build a Report from a consent record + wizard plans + target observations.
+/// Build a Report from wizard plans + target observations.
 pub fn build_report(
     engagement_id: &str,
-    consent: &ConsentRecord,
+    operator: &str,
     audit_digest: &str,
     targets: Vec<TargetReport>,
-    plans: Vec<WizardPlan>,
+    plans: Vec<netspecter_common::ipc::WizardPlan>,
 ) -> Report {
     let mut report = Report {
         engagement_id: engagement_id.into(),
         generated_at: Utc::now(),
-        operator: consent.operator.clone(),
-        scope: consent.scope.clone(),
-        rules_of_engagement: consent.rules_of_engagement.clone(),
+        operator: operator.into(),
+        scope: String::new(),
+        rules_of_engagement: String::new(),
         targets,
         findings: Vec::new(),
         audit_chain_digest: audit_digest.into(),

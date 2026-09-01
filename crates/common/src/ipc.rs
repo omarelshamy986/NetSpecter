@@ -13,7 +13,7 @@ use std::io::{self, Read, Write};
 // Re-export the NetSpecter-specific types so consumers of the IPC module
 // can name them without reaching into the individual submodules.
 pub use crate::backend_types::{
-    ConsentRecord, EvilTwinConfig, EvilTwinSession, HiddenSsidCandidate, PmkidCapture,
+    EvilTwinConfig, EvilTwinSession, HiddenSsidCandidate, PmkidCapture,
     SsidSource, TargetReport, WizardPlan, WizardStep, WizardStepKind,
 };
 
@@ -136,19 +136,10 @@ pub enum Request {
 
     /// Render a pentest report. Returns the paths of the produced files.
     GenerateReport {
-        consent: ConsentRecord,
         targets: Vec<TargetReport>,
         plans: Vec<WizardPlan>,
         output_dir: String,
     },
-
-    /// Read the current audit-chain head (the most recent SHA-256 chain
-    /// hash, or 32 zero bytes if the log is empty).
-    GetAuditChainHead,
-
-    /// Verify the audit chain. Returns `Bool(true)` if every entry's chain
-    /// hash is consistent.
-    VerifyAuditChain,
 }
 
 /// A reply from the agent to a [`Request`].
@@ -202,10 +193,6 @@ pub enum Response {
         json: String,
         pdf: Option<String>,
     },
-
-    /// Reply to [`Request::GetAuditChainHead`] — the current chain head
-    /// (32-byte hex string).
-    ChainHead(String),
 }
 
 /// Write a length-prefixed JSON frame.

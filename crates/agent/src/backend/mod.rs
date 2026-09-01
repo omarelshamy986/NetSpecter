@@ -1,7 +1,5 @@
 pub mod app;
-pub mod audit;
 pub mod capture;
-pub mod consent;
 pub mod deauth;
 pub mod evil_twin;
 pub mod hidden;
@@ -18,9 +16,7 @@ pub mod wpa3;
 pub mod wps;
 
 pub use app::*;
-pub use audit::*;
 pub use capture::*;
-pub use consent::*;
 pub use deauth::*;
 pub use evil_twin::*;
 pub use hidden::*;

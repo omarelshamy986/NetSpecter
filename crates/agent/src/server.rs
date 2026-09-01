@@ -420,37 +420,10 @@ fn dispatch(request: Request) -> (Response, bool) {
         }
 
         Request::GenerateReport {
-            consent,
             targets,
             plans,
             output_dir,
         } => {
-            let mut audit_digest = String::new();
-            if let Ok(log) = backend::audit::AuditLog::open(consent.operator.clone()) {
-                if let Some(last) = std::fs::read_to_string(
-                    std::env::var("HOME").unwrap_or_default() + "/.netspecter/audit.log",
-                )
-                .ok()
-                .and_then(|s| s.lines().last().map(String::from))
-                {
-                    if let Ok(entry) =
-                        serde_json::from_str::<backend::audit::AuditEntry>(&last)
-                    {
-                        audit_digest = entry.chain_hash;
-                    }
-                }
-                let _ = log; // suppress unused warning
-            }
-            // Build a Report using the report module.
-            let agent_consent = backend::consent::ConsentRecord {
-                operator: consent.operator.clone(),
-                scope: consent.scope.clone(),
-                rules_of_engagement: consent.rules_of_engagement.clone(),
-                agreed_at: chrono::DateTime::parse_from_rfc3339(&consent.agreed_at)
-                    .map(|dt| dt.with_timezone(&chrono::Utc))
-                    .unwrap_or_else(|_| chrono::Utc::now()),
-                record_digest: consent.record_digest.clone(),
-            };
             // Map wire → agent types for plans.
             let agent_plans: Vec<backend::wizard::WizardPlan> = plans
                 .into_iter()
@@ -497,8 +470,8 @@ fn dispatch(request: Request) -> (Response, bool) {
                 .collect();
             let report = backend::report::build_report(
                 "ENG-AUTO",
-                &agent_consent,
-                &audit_digest,
+                "",
+                "",
                 targets,
                 agent_plans,
             );
@@ -522,27 +495,6 @@ fn dispatch(request: Request) -> (Response, bool) {
                 },
                 false,
             )
-        }
-
-        Request::GetAuditChainHead => {
-            let path = std::env::var("HOME").unwrap_or_default() + "/.netspecter/audit.log";
-            let head = std::fs::read_to_string(&path)
-                .ok()
-                .and_then(|s| s.lines().last().map(String::from))
-                .and_then(|line| {
-                    serde_json::from_str::<backend::audit::AuditEntry>(&line)
-                        .ok()
-                        .map(|e| e.chain_hash)
-                })
-                .unwrap_or_else(|| "0".repeat(64));
-            (Response::ChainHead(head), false)
-        }
-
-        Request::VerifyAuditChain => {
-            let path = std::env::var("HOME").unwrap_or_default() + "/.netspecter/audit.log";
-            let audit_path = std::path::PathBuf::from(path);
-            let ok = backend::audit::verify_chain(&audit_path).is_ok();
-            (Response::Bool(ok), false)
         }
 
         Request::Shutdown => (Response::Ok, true),

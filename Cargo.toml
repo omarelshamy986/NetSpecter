@@ -41,5 +41,4 @@ num-integer = "0.1"
 num-traits = "0.2"
 askama = "0.12"
 
-[dev-dependencies]
-tempfile = "3"
+[workspace.metadata]

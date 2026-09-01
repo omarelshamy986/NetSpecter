@@ -220,13 +220,11 @@ impl IpcClient {
     /// Generate a report. Returns the paths of the produced files.
     pub fn generate_report(
         &self,
-        consent: netspecter_common::ipc::ConsentRecord,
         targets: Vec<netspecter_common::ipc::TargetReport>,
         plans: Vec<netspecter_common::ipc::WizardPlan>,
         output_dir: &str,
     ) -> Result<netspecter_common::ipc::ReportPaths, IpcError> {
         match self.call(Request::GenerateReport {
-            consent,
             targets,
             plans,
             output_dir: output_dir.into(),
@@ -234,24 +232,6 @@ impl IpcClient {
             Response::ReportPaths { html, json, pdf } => Ok(
                 netspecter_common::ipc::ReportPaths { html, json, pdf },
             ),
-            Response::Error { message } => Err(IpcError::AgentError(message)),
-            _ => Err(IpcError::UnexpectedResponse),
-        }
-    }
-
-    /// Read the current audit-chain head.
-    pub fn get_audit_chain_head(&self) -> Result<String, IpcError> {
-        match self.call(Request::GetAuditChainHead)? {
-            Response::ChainHead(s) => Ok(s),
-            Response::Error { message } => Err(IpcError::AgentError(message)),
-            _ => Err(IpcError::UnexpectedResponse),
-        }
-    }
-
-    /// Verify the audit chain.
-    pub fn verify_audit_chain(&self) -> Result<bool, IpcError> {
-        match self.call(Request::VerifyAuditChain)? {
-            Response::Bool(b) => Ok(b),
             Response::Error { message } => Err(IpcError::AgentError(message)),
             _ => Err(IpcError::UnexpectedResponse),
         }
@@ -399,25 +379,5 @@ mod tests {
         // harvest_pmkid expects Response::PmkidCapture, but the mock returns Ok.
         let err = client.harvest_pmkid("aa:bb:cc:dd:ee:ff", "X", 1).unwrap_err();
         assert!(matches!(err, IpcError::UnexpectedResponse));
-    }
-
-    #[test]
-    fn audit_chain_head_round_trip() {
-        let path = spawn_mock_agent(|_| Response::ChainHead(
-            "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234".into(),
-        ));
-        let client = IpcClient::with_path(path);
-        client.connect().unwrap();
-        let head = client.get_audit_chain_head().unwrap();
-        assert_eq!(head.len(), 64);
-        assert!(head.starts_with("abcd1234"));
-    }
-
-    #[test]
-    fn verify_audit_chain_round_trip() {
-        let path = spawn_mock_agent(|_| Response::Bool(true));
-        let client = IpcClient::with_path(path);
-        client.connect().unwrap();
-        assert!(client.verify_audit_chain().unwrap());
     }
 }

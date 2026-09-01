@@ -276,15 +276,9 @@ impl ReportsPage {
         generate_btn.connect_clicked(move |_btn| {
             let ipc = state_for_gen.borrow().ipc.clone();
 
-            // For the demo, build a single-target plan and ask the agent
-            // to render the report into a tmp directory.
-            let consent = netspecter_common::ipc::ConsentRecord {
-                operator: "demo-operator".into(),
-                scope: "essid:TestNet".into(),
-                rules_of_engagement: "ROE-DEMO".into(),
-                agreed_at: chrono::Utc::now().to_rfc3339(),
-                record_digest: "demo".into(),
-            };
+            // Build a single-target plan and ask the agent to render the
+            // report into a tmp directory. v1.3.0 no longer requires a
+            // ConsentRecord — the engagement_id is sufficient.
             let target = netspecter_common::ipc::TargetReport {
                 bssid: "aa:bb:cc:dd:ee:ff".into(),
                 essid: "TestNet".into(),
@@ -308,7 +302,7 @@ impl ReportsPage {
             let list_clone = list.clone();
             std::thread::spawn(move || {
                 let _ = std::fs::create_dir_all(&output_dir);
-                match ipc.generate_report(consent, vec![target], vec![plan], &output_dir) {
+                match ipc.generate_report(vec![target], vec![plan], &output_dir) {
                     Ok(paths) => {
                         glib::idle_add_once(move || {
                             list_clone.add_report("Demo engagement", &paths.json);
@@ -331,45 +325,10 @@ impl ReportsPage {
 // ─────────────────────────────────────────────────────────────────
 
 impl AuditLogPage {
-    pub fn wire_handlers(&self, state: SharedState) {
-        // Populate chain head on first render.
-        let ipc = state.borrow().ipc.clone();
-        let head_label = self.head_label.clone();
-        std::thread::spawn(move || match ipc.get_audit_chain_head() {
-            Ok(head) => {
-                glib::idle_add_once(move || {
-                    head_label.set_text(&head);
-                });
-            }
-            Err(_) => {}
-        });
-
-        // Verify chain button.
-        let verify_btn = self.verify_btn.clone();
-        let head_label_for_verify = self.head_label.clone();
-        let state_for_verify = state.clone();
-        verify_btn.connect_clicked(move |_btn| {
-            let ipc = state_for_verify.borrow().ipc.clone();
-            let head_label_clone = head_label_for_verify.clone();
-            std::thread::spawn(move || match ipc.verify_audit_chain() {
-                Ok(true) => {
-                    glib::idle_add_once(move || {
-                        head_label_clone.set_text("✓ chain valid");
-                    });
-                }
-                Ok(false) => {
-                    glib::idle_add_once(move || {
-                        head_label_clone.set_text("✗ chain TAMPERED");
-                    });
-                }
-                Err(e) => {
-                    let msg = format!("verify failed: {e}");
-                    glib::idle_add_once(move || {
-                        head_label_clone.set_text(&msg);
-                    });
-                }
-            });
-        });
+    pub fn wire_handlers(&self, _state: SharedState) {
+        // No IPC — v1.3.0 removed the audit-chain verify / chain-head
+        // endpoints. The page renders the persisted file (if any) on
+        // first paint.
     }
 }
 
