@@ -1,5 +1,6 @@
 mod connections;
-mod interfaces;
+pub mod interfaces;
+pub mod pages;
 mod widgets;
 
 use crate::backend;
