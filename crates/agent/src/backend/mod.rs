@@ -1,5 +1,6 @@
 pub mod app;
 pub mod capture;
+pub mod corroborate;
 pub mod deauth;
 pub mod evil_twin;
 pub mod hidden;
@@ -18,6 +19,7 @@ pub mod wps;
 
 pub use app::*;
 pub use capture::*;
+pub use corroborate::*;
 pub use deauth::*;
 pub use evil_twin::*;
 pub use hidden::*;
