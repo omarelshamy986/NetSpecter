@@ -1,31 +1,42 @@
 [package]
-name = "airgorah-agent"
+name = "netspecter-agent"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Privileged agent process for airgorah: owns interface, scan, deauth and capture operations"
+description = "Privileged agent process for NetSpecter: owns interface, scan, deauth, capture, PMKID, WPS, Evil-Twin and report operations"
 homepage.workspace = true
 repository.workspace = true
 documentation.workspace = true
 
 [[bin]]
-name = "airgorah-agent"
+name = "netspecter-agent"
 path = "src/main.rs"
 
 [dependencies]
-airgorah-common.workspace = true
+netspecter-common.workspace = true
 serde.workspace = true
 log.workspace = true
 env_logger.workspace = true
 thiserror.workspace = true
 nix.workspace = true
 lazy_static.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+sha2.workspace = true
+hmac.workspace = true
+pbkdf2.workspace = true
+hex.workspace = true
+rand.workspace = true
+tokio.workspace = true
+async-trait.workspace = true
+reqwest.workspace = true
 csv = "1.4"
 ctrlc = { version = "3.5", features = ["termination"] }
 libwifi = "0.5"
 radiotap = "1"
-chrono = "0.4"
 libc = "0.2"
+handlebars.workspace = true
+pulldown-cmark.workspace = true
 
 [build-dependencies]
 serde = { version = "1", features = ["derive"] }

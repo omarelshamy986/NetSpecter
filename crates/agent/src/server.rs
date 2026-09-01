@@ -8,11 +8,11 @@
 
 use crate::backend;
 use crate::validate::{is_valid_interface_name, is_valid_mac};
-use airgorah_common::VERSION;
-use airgorah_common::channel::is_valid_channel_filter;
-use airgorah_common::deps::{self, Requirer};
-use airgorah_common::ipc::*;
-use airgorah_common::types::*;
+use netspecter_common::VERSION;
+use netspecter_common::channel::is_valid_channel_filter;
+use netspecter_common::deps::{self, Requirer};
+use netspecter_common::ipc::*;
+use netspecter_common::types::*;
 
 use nix::sys::socket::{getsockopt, sockopt::PeerCredentials};
 use std::io;

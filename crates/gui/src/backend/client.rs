@@ -1,9 +1,9 @@
 //! IPC client
 
 use crate::globals::*;
-use airgorah_common::deps::{self, Requirer};
-use airgorah_common::ipc::*;
-use airgorah_common::types::{AP, AttackState, Client};
+use netspecter_common::deps::{self, Requirer};
+use netspecter_common::ipc::*;
+use netspecter_common::types::{AP, AttackState, Client};
 
 use lazy_static::lazy_static;
 use nix::unistd::{geteuid, getuid};
@@ -86,7 +86,7 @@ fn missing_deps_error<S: AsRef<str>>(missing: &[S]) -> AgentError {
 pub fn init() -> Result<(), AgentError> {
     if geteuid().is_root() {
         log::warn!(
-            "running the airgorah GUI as root is discouraged and does not work under Wayland"
+            "running the netspecter GUI as root is discouraged and does not work under Wayland"
         );
     }
 
@@ -187,7 +187,7 @@ fn spawn_agent() -> Result<Child, AgentError> {
         // Normal case: escalate only the agent, via polkit.
         if !deps::is_installed(deps::PKEXEC) {
             return Err(AgentError(
-                "could not find 'pkexec' to start the privileged agent, install polkit, or run airgorah as root"
+                "could not find 'pkexec' to start the privileged agent, install polkit, or run netspecter as root"
                     .to_string(),
             ));
         }
@@ -211,11 +211,11 @@ fn agent_binary_path() -> Result<PathBuf, AgentError> {
     let candidate = exe
         .parent()
         .ok_or_else(|| AgentError("the running executable has no parent directory".to_string()))?
-        .join("airgorah-agent");
+        .join("netspecter-agent");
 
     if !candidate.is_file() {
         return Err(AgentError(
-            "could not locate the 'airgorah-agent' binary next to the GUI".to_string(),
+            "could not locate the 'netspecter-agent' binary next to the GUI".to_string(),
         ));
     }
 
@@ -478,7 +478,7 @@ pub fn save_capture(path: &str) -> Result<(), AgentError> {
 
 /// Check if a new version is available.
 pub fn check_update(current_version: &str) -> Option<String> {
-    let url = "https://api.github.com/repos/martin-olivier/airgorah/releases/latest";
+    let url = "https://api.github.com/repos/martin-olivier/netspecter/releases/latest";
 
     if let Ok(mut response) = ureq::get(url).call()
         && let Ok(json) = response.body_mut().read_json::<serde_json::Value>()
@@ -491,7 +491,7 @@ pub fn check_update(current_version: &str) -> Option<String> {
         return Some(new_version);
     }
 
-    log::info!("airgorah is up to date");
+    log::info!("netspecter is up to date");
 
     None
 }

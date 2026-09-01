@@ -8,7 +8,7 @@
 //! parsing it needs no privilege, so the logic is identical on both sides.
 //!
 //! Only the classic libpcap format is read, with link type
-//! `LINKTYPE_IEEE802_11_RADIOTAP` (127, what airgorah itself writes) or plain
+//! `LINKTYPE_IEEE802_11_RADIOTAP` (127, what netspecter itself writes) or plain
 //! `LINKTYPE_IEEE802_11` (105). Frames are decoded with `radiotap` + `libwifi`;
 //! a data frame carrying an EAPOL key is classified into one of the four handshake
 //! messages, and an AP is reported once a crackable combination has been seen.

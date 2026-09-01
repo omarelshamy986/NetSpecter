@@ -84,7 +84,7 @@ mod tests {
 
     fn temp_path(name: &str) -> String {
         let mut path = std::env::temp_dir();
-        path.push(format!("airgorah-pcap-test-{}-{name}", std::process::id()));
+        path.push(format!("netspecter-pcap-test-{}-{name}", std::process::id()));
         path.to_str().unwrap().to_string()
     }
 

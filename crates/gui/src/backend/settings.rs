@@ -1,10 +1,10 @@
 use crate::globals::*;
-use airgorah_common::deps;
-use airgorah_common::types::Settings;
+use netspecter_common::deps;
+use netspecter_common::types::Settings;
 
 use std::path::PathBuf;
 
-/// Per-user config path (`$XDG_CONFIG_HOME/airgorah/config.toml`, falling back to
+/// Per-user config path (`$XDG_CONFIG_HOME/netspecter/config.toml`, falling back to
 /// `~/.config/...`).
 fn user_config_path() -> Option<PathBuf> {
     let base = std::env::var_os("XDG_CONFIG_HOME")
@@ -12,7 +12,7 @@ fn user_config_path() -> Option<PathBuf> {
         .filter(|p| p.is_absolute())
         .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))?;
 
-    Some(base.join("airgorah").join("config.toml"))
+    Some(base.join("netspecter").join("config.toml"))
 }
 
 /// Load settings from the user config file, falling back to the built-in

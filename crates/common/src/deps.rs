@@ -1,4 +1,4 @@
-//! Catalog of the external command-line tools airgorah relies on.
+//! Catalog of the external command-line tools netspecter relies on.
 //!
 //! A single source of truth: each tool is declared once, tagged with which
 //! process runs it and whether it is required. Both the GUI and the agent derive
@@ -6,7 +6,7 @@
 //! the agent runs as root with `/usr/sbin` on `PATH` and can see tools the
 //! unprivileged GUI cannot, so the check must happen on each side.
 
-/// Which airgorah process invokes a given tool.
+/// Which netspecter process invokes a given tool.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Requirer {
     /// Only the unprivileged GUI (interface listing, handshake decryption).
@@ -29,7 +29,7 @@ pub const CRUNCH: &str = "crunch";
 pub const SYSTEMCTL: &str = "systemctl";
 pub const PKEXEC: &str = "pkexec";
 
-/// Every external tool airgorah shells out to.
+/// Every external tool netspecter shells out to.
 pub const TOOLS: &[Tool] = &[
     // Required.
     Tool {

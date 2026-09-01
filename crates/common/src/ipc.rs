@@ -9,7 +9,7 @@ use serde::de::DeserializeOwned;
 use std::io::{self, Read, Write};
 
 /// Directory the agent creates (as root) to hold its listening socket.
-pub const RUNTIME_DIR: &str = "/run/airgorah";
+pub const RUNTIME_DIR: &str = "/run/netspecter";
 
 /// Hard cap on a single framed message, guarding against a bogus length prefix.
 const MAX_MSG_LEN: usize = 64 * 1024 * 1024;

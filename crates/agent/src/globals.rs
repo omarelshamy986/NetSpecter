@@ -5,7 +5,7 @@
 //! deauth attacks, the accumulated scan data, and the interface/service state that
 //! must be restored on teardown.
 
-use airgorah_common::types::{AP, AttackTarget, Client};
+use netspecter_common::types::{AP, AttackTarget, Client};
 
 use lazy_static::lazy_static;
 use std::collections::HashMap;
@@ -16,10 +16,10 @@ use std::sync::atomic::AtomicU32;
 use std::thread::JoinHandle;
 
 /// Root-owned 0700 directory for the agent's scan/capture files.
-pub static CAPTURE_DIR: &str = "/var/lib/airgorah";
+pub static CAPTURE_DIR: &str = "/var/lib/netspecter";
 
-pub static LIVE_SCAN_PATH: &str = "/var/lib/airgorah/live_scan";
-pub static OLD_SCAN_PATH: &str = "/var/lib/airgorah/old_scan";
+pub static LIVE_SCAN_PATH: &str = "/var/lib/netspecter/live_scan";
+pub static OLD_SCAN_PATH: &str = "/var/lib/netspecter/old_scan";
 
 /// Handle to the running native capture thread.
 ///
@@ -38,7 +38,7 @@ pub struct ScanHandle {
 }
 
 /// A running native deauth attack against one AP. `target` is kept for the wire
-/// projection ([`airgorah_common::types::AttackState`]), `stop` asks the injection
+/// projection ([`netspecter_common::types::AttackState`]), `stop` asks the injection
 /// thread to exit and `handle` joins it.
 pub struct DeauthAttack {
     pub ap: AP,

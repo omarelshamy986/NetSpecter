@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use super::get_attack_pool;
 use super::sniffer;
 use crate::globals::*;
-use airgorah_common::types::*;
+use netspecter_common::types::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ScanError {

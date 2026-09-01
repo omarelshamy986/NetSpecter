@@ -1,21 +1,40 @@
-MIT License
+GNU GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
 
-Copyright (c) 2026 Martin Olivier
+ Copyright (C) 2026 AbD02018 <ana.abdo2013@gmail.com>
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+ NetSpecter is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+ NetSpecter is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ GNU General Public License for more details.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+ You should have received a copy of the GNU General Public License
+ along with NetSpecter. If not, see <https://www.gnu.org/licenses/gpl-3.0.txt>.
+
+ =============================================================================
+
+ Portions of this software are derived from Airgorah by Martin Olivier,
+ licensed under MIT. The original MIT notice and copyright are preserved in
+ NOTICE.md. The Airgorah-derived portions (workspace structure, GTK4 GUI
+ skeleton, aircrack-ng orchestration, native WPA handshake detection) remain
+ under the MIT terms of the original work; NetSpecter additions and
+ modifications are licensed under GPL-3.0-or-later as defined above.
+
+ =============================================================================
+
+ NOTE ON USE
+
+ NetSpecter is an offensive security tool. It is published for the purpose of
+ authorized penetration testing, security research, and education. The authors
+ explicitly CONDEMN unauthorized use of this software against networks and
+ devices for which the operator does not have explicit written authorization.
+
+ Use of NetSpecter against systems you do not own or have not been authorized
+ to test may violate computer-misuse laws in your jurisdiction (in the Arab
+ Republic of Egypt, see Law No. 175 of 2018 on Anti-Cyber and Information
+ Technology Crimes; comparable statutes exist in most jurisdictions).

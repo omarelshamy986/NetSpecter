@@ -1,4 +1,4 @@
-//! `airgorah-agent` — the privileged half of airgorah.
+//! `netspecter-agent` — the privileged half of netspecter.
 //!
 //! Launched by the unprivileged GUI (normally via `pkexec`), it runs as root,
 //! listens on a per-instance Unix socket, and performs every operation that needs
@@ -12,7 +12,7 @@ mod globals;
 mod server;
 mod validate;
 
-use airgorah_common::ipc::{RUNTIME_DIR, socket_path};
+use netspecter_common::ipc::{RUNTIME_DIR, socket_path};
 
 use nix::unistd::{Uid, chown, geteuid, getppid, getuid};
 use std::os::unix::fs::PermissionsExt;
@@ -22,7 +22,7 @@ fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     if !geteuid().is_root() {
-        eprintln!("airgorah-agent must run as root");
+        eprintln!("netspecter-agent must run as root");
         std::process::exit(1);
     }
 

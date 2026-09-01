@@ -1,6 +1,6 @@
 use crate::globals::*;
-use airgorah_common::deps;
-use airgorah_common::types::MacMode;
+use netspecter_common::deps;
+use netspecter_common::types::MacMode;
 use std::process::Command;
 
 #[derive(thiserror::Error, Debug)]

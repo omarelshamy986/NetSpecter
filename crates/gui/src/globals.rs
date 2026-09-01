@@ -1,4 +1,4 @@
-use airgorah_common::types::{AP, AttackState, Client, Settings};
+use netspecter_common::types::{AP, AttackState, Client, Settings};
 
 use lazy_static::lazy_static;
 use std::collections::HashMap;
@@ -6,8 +6,8 @@ use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 use std::thread::JoinHandle;
 
-pub static APP_ID: &str = "com.molivier.airgorah";
-pub use airgorah_common::VERSION;
+pub static APP_ID: &str = "com.molivier.netspecter";
+pub use netspecter_common::VERSION;
 
 pub static APP_ICON: &[u8] =
     include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/icons/app_icon.png"));

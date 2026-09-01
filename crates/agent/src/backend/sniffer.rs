@@ -15,8 +15,8 @@ use super::pcap::PcapWriter;
 use super::raw_socket;
 use super::scan::{get_aps, get_cap_ext, get_live_scan_path, get_unlinked_clients};
 
-use airgorah_common::channel::{CHANNELS_2_4, CHANNELS_5};
-use airgorah_common::types::{AP, Client};
+use netspecter_common::channel::{CHANNELS_2_4, CHANNELS_5};
+use netspecter_common::types::{AP, Client};
 
 use libwifi::Addresses;
 use libwifi::Frame;
@@ -426,7 +426,7 @@ fn band_of(channel: i32) -> String {
     if channel > 14 { "5 GHz" } else { "2.4 GHz" }.to_string()
 }
 
-/// Derive airgorah's single-token privacy label from the beacon's security IEs.
+/// Derive netspecter's single-token privacy label from the beacon's security IEs.
 fn classify_privacy(capability_info: u16, info: &StationInfo) -> String {
     if let Some(rsn) = &info.rsn_information {
         if rsn.akm_suites.contains(&RsnAkmSuite::SAE) {

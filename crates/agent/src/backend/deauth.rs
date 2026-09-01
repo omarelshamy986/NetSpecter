@@ -6,7 +6,7 @@
 
 use super::raw_socket;
 use crate::globals::*;
-use airgorah_common::types::*;
+use netspecter_common::types::*;
 
 use std::sync::Arc;
 use std::sync::MutexGuard;

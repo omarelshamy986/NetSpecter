@@ -328,14 +328,14 @@ fn connect_about_button(app_data: Rc<AppData>) {
             let desc = "A WiFi security auditing software mainly based on aircrack-ng tools suite";
 
             AboutDialog::builder()
-                .program_name("Airgorah")
+                .program_name("NetSpecter")
                 .version(globals::VERSION)
                 .authors(vec!["Martin OLIVIER (martin.olivier@live.fr)".to_string()])
                 .copyright("Copyright (c) Martin OLIVIER")
                 .license_type(License::MitX11)
                 .logo(&Picture::for_pixbuf(&icon).paintable().unwrap())
                 .comments(desc)
-                .website_label("https://github.com/martin-olivier/airgorah")
+                .website_label("https://github.com/martin-olivier/netspecter")
                 .transient_for(&app_data.app_gui.window)
                 .modal(true)
                 .build()

@@ -1,5 +1,5 @@
 use super::{get_aps, get_unlinked_clients};
-use airgorah_common::types::{AP, Client};
+use netspecter_common::types::{AP, Client};
 
 use serde::Serialize;
 use std::fs::File;
