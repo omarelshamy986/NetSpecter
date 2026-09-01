@@ -7,6 +7,7 @@ mod backend;
 mod frontend;
 mod globals;
 mod ipc_client;
+mod ipc_handlers;
 mod types;
 
 fn main() {

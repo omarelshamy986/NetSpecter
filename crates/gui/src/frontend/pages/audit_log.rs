@@ -12,6 +12,8 @@ use gtk4::*;
 
 pub struct AuditLogPage {
     pub root: Box,
+    pub head_label: Label,
+    pub verify_btn: Button,
 }
 
 impl AuditLogPage {
@@ -64,7 +66,7 @@ impl AuditLogPage {
         scrolled.set_child(Some(&list));
         root.append(&scrolled);
 
-        Self { root }
+        Self { root, head_label, verify_btn }
     }
 }
 

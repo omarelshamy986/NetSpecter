@@ -16,6 +16,11 @@ use gtk4::*;
 
 pub struct PmkidPage {
     pub root: Box,
+    pub capture_btn: Button,
+    pub verify_btn: Button,
+    pub open_pcap_btn: Button,
+    pub verify_entry: Entry,
+    pub result_label: Label,
 }
 
 impl PmkidPage {
@@ -67,6 +72,17 @@ impl PmkidPage {
 
         root.append(&button_box);
 
+        // Verify entry.
+        let verify_label = Label::builder()
+            .label("Candidate passphrase:")
+            .halign(Align::Start)
+            .build();
+        root.append(&verify_label);
+        let verify_entry = Entry::new();
+        verify_entry.set_placeholder_text(Some("paste candidate passphrase"));
+        verify_entry.set_hexpand(true);
+        root.append(&verify_entry);
+
         // Result area.
         let result_label = Label::builder()
             .label("No capture yet.")
@@ -89,7 +105,14 @@ impl PmkidPage {
         hashcat_box.append(&hashcat_label);
         root.append(&hashcat_box);
 
-        Self { root }
+        Self {
+            root,
+            capture_btn,
+            verify_btn,
+            open_pcap_btn,
+            verify_entry,
+            result_label,
+        }
     }
 }
 
@@ -103,7 +126,6 @@ impl Default for PmkidPage {
 mod tests {
     #[test]
     fn page_constructs() {
-        // Just verifies the module compiles.
         let _ = super::PmkidPage::new();
     }
 }

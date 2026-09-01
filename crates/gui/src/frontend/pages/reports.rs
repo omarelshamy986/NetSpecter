@@ -9,6 +9,7 @@ use gtk4::*;
 pub struct ReportsPage {
     pub root: Box,
     pub list: ListBox,
+    pub generate_btn: Button,
 }
 
 impl ReportsPage {
@@ -61,7 +62,7 @@ impl ReportsPage {
 
         root.append(&bar);
 
-        Self { root, list }
+        Self { root, list, generate_btn }
     }
 
     /// Add a report entry to the list.

@@ -33,6 +33,18 @@ pub struct WizardState {
     pub rows: Vec<WizardRow>,
     pub rationale_label: Label,
     pub encryption_label: Label,
+    pub target_dropdown: Option<DropDown>,
+    pub step_list: Option<ListBox>,
+    pub ap_snapshot: Vec<AP>,
+}
+
+impl WizardState {
+    /// The AP currently selected in the target dropdown.
+    pub fn selected_ap(&self) -> Option<AP> {
+        let dropdown = self.target_dropdown.as_ref()?;
+        let idx = dropdown.selected();
+        self.ap_snapshot.get(idx as usize).cloned()
+    }
 }
 
 /// The Smart Wizard notebook page.
@@ -142,6 +154,7 @@ impl SmartWizardPage {
     /// Repopulate the target dropdown with the current scan results.
     pub fn set_targets(&self, aps: &[AP]) {
         let mut state = self.state.borrow_mut();
+        state.ap_snapshot = aps.to_vec();
         if let Some(ref dropdown) = state.target_dropdown {
             let labels: Vec<String> = aps
                 .iter()
@@ -155,6 +168,11 @@ impl SmartWizardPage {
                 dropdown.set_model(Some(&model));
             }
         }
+    }
+
+    /// Read-only snapshot of the APs currently in the dropdown.
+    pub fn ap_snapshot(&self) -> Vec<AP> {
+        self.state.borrow().ap_snapshot.clone()
     }
 
     /// Render the plan for the currently-selected target.

@@ -29,6 +29,14 @@ pub struct AppState {
     pub notebook: Notebook,
 }
 
+impl AppState {
+    /// The AP currently selected in the wizard's target dropdown.
+    /// Returns `None` if no dropdown is bound or nothing is selected.
+    pub fn selected_ap(&self) -> Option<netspecter_common::types::AP> {
+        self.wizard_page.state.borrow().selected_ap()
+    }
+}
+
 pub type SharedState = Rc<RefCell<AppState>>;
 
 /// Build the application shell — a notebook with the 5 NetSpecter pages

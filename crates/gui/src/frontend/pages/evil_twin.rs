@@ -9,6 +9,14 @@ use gtk4::*;
 
 pub struct EvilTwinPage {
     pub root: Box,
+    pub launch_btn: Button,
+    pub stop_btn: Button,
+    pub iface_entry: Entry,
+    pub ssid_entry: Entry,
+    pub bssid_entry: Entry,
+    pub channel_spin: SpinButton,
+    pub nat_switch: Switch,
+    pub creds_view: ListBox,
 }
 
 impl EvilTwinPage {
@@ -58,16 +66,16 @@ impl EvilTwinPage {
         grid.attach(&bssid_entry, 1, 2, 1, 1);
 
         grid.attach(&Label::new(Some("Channel:")), 0, 3, 1, 1);
-        let channel_entry = SpinButton::with_range(1.0, 165.0, 1.0);
-        channel_entry.set_value(6.0);
-        grid.attach(&channel_entry, 1, 3, 1, 1);
+        let channel_spin = SpinButton::with_range(1.0, 165.0, 1.0);
+        channel_spin.set_value(6.0);
+        grid.attach(&channel_spin, 1, 3, 1, 1);
 
         grid.attach(&Label::new(Some("Portal skin:")), 0, 4, 1, 1);
-        let skin_dropdown = DropDown::from_strings(&[
+        let _skin_dropdown = DropDown::from_strings(&[
             "router-mimic (dark)",
             "ISP-mimic (light)",
         ]);
-        grid.attach(&skin_dropdown, 1, 4, 1, 1);
+        grid.attach(&_skin_dropdown, 1, 4, 1, 1);
 
         grid.attach(&Label::new(Some("Enable NAT:")), 0, 5, 1, 1);
         let nat_switch = Switch::new();
@@ -110,7 +118,17 @@ impl EvilTwinPage {
         scrolled.set_child(Some(&creds_view));
         root.append(&scrolled);
 
-        Self { root }
+        Self {
+            root,
+            launch_btn,
+            stop_btn,
+            iface_entry,
+            ssid_entry,
+            bssid_entry,
+            channel_spin,
+            nat_switch,
+            creds_view,
+        }
     }
 }
 
