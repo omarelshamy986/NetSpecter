@@ -15,6 +15,7 @@ pub mod ipc;
 pub mod types;
 pub mod wps;
 pub mod wps_crypto;
+pub mod wps_dh;
 pub mod wps_tlv;
 
 pub use types::*;
