@@ -34,6 +34,7 @@ pub enum SsidSource {
     DeauthReassoc,
     ProbeResponse,
     VendorGuess,
+    BeaconFlood,
 }
 
 /// A candidate ESSID for a hidden AP.

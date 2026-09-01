@@ -349,6 +349,46 @@ fn dispatch(request: Request) -> (Response, bool) {
             (Response::HiddenSsidCandidates(wire), false)
         }
 
+        Request::BeaconFloodHidden {
+            bssid,
+            channel,
+            timeout_secs,
+        } => {
+            if !is_valid_mac(&bssid) {
+                return (err("invalid BSSID for beacon-flood attack"), false);
+            }
+            let bssid_bytes = match airgorah_common::crypto::parse_mac(&bssid) {
+                Some(b) => b,
+                None => return (err("could not parse BSSID"), false),
+            };
+            let iface = match backend::get_iface() {
+                Some(i) => i,
+                None => return (err("no monitor-mode interface selected"), false),
+            };
+            backend::set_iface(iface);
+            let config = backend::hidden_beacon::BeaconFloodConfig::new(bssid_bytes, channel);
+            let mut attack = backend::hidden_beacon::BeaconFloodAttack::launch(
+                config,
+                std::time::Duration::from_secs(timeout_secs),
+            );
+            // Block on the worker thread's join, with a small grace period.
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            let result = attack.stop();
+            match result.candidate {
+                Some(c) => {
+                    let wire = netspecter_common::ipc::HiddenSsidCandidate {
+                        essid: c.essid,
+                        source: netspecter_common::ipc::SsidSource::BeaconFlood,
+                        observations: c.observations,
+                        first_seen: c.first_seen,
+                        leaking_client: c.leaking_client,
+                    };
+                    (Response::HiddenSsidCandidates(vec![wire]), false)
+                }
+                None => (err("beacon-flood attack timed out without recovering an ESSID"), false),
+            }
+        }
+
         Request::LaunchEvilTwin { config } => {
             let agent_config = backend::evil_twin::EvilTwinConfig {
                 iface: config.iface.clone(),

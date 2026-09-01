@@ -124,6 +124,15 @@ pub enum Request {
         channel: String,
     },
 
+    /// Launch a beacon-flooding attack against a hidden AP to provoke
+    /// probe requests from clients. Returns the recovered candidate (or
+    /// `Error` on timeout).
+    BeaconFloodHidden {
+        bssid: String,
+        channel: u8,
+        timeout_secs: u64,
+    },
+
     /// Launch an Evil-Twin session. Returns the new session record.
     LaunchEvilTwin {
         config: EvilTwinConfig,

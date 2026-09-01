@@ -196,6 +196,26 @@ impl IpcClient {
         }
     }
 
+    /// Launch a beacon-flooding attack to provoke probe requests from
+    /// clients of a hidden AP. Returns a single-element vector with the
+    /// recovered candidate on success.
+    pub fn beacon_flood_hidden(
+        &self,
+        bssid: &str,
+        channel: u8,
+        timeout_secs: u64,
+    ) -> Result<Vec<netspecter_common::ipc::HiddenSsidCandidate>, IpcError> {
+        match self.call(Request::BeaconFloodHidden {
+            bssid: bssid.into(),
+            channel,
+            timeout_secs,
+        })? {
+            Response::HiddenSsidCandidates(c) => Ok(c),
+            Response::Error { message } => Err(IpcError::AgentError(message)),
+            _ => Err(IpcError::UnexpectedResponse),
+        }
+    }
+
     /// Launch an Evil-Twin session.
     pub fn launch_evil_twin(
         &self,
