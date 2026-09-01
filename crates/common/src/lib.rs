@@ -5,6 +5,7 @@
 //! IPC protocol and its framed-JSON codec, and a couple of utilities that both
 //! sides need.
 
+pub mod backend_types;
 pub mod channel;
 pub mod crypto;
 pub mod deps;

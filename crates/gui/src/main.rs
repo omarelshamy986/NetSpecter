@@ -2,9 +2,11 @@ use gtk4::gio::ApplicationFlags;
 use gtk4::prelude::*;
 use gtk4::{Application, Settings};
 
+mod app_shell;
 mod backend;
 mod frontend;
 mod globals;
+mod ipc_client;
 mod types;
 
 fn main() {

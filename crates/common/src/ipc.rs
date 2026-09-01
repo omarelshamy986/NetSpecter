@@ -3,10 +3,19 @@
 //! Wire format: a 4-byte big-endian length prefix followed by a JSON-encoded
 //! [`Request`] or [`Response`].
 
+use crate::encryption::RsnIe;
 use crate::types::*;
+use crate::wps::WpsOutcome;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::io::{self, Read, Write};
+
+// Re-export the NetSpecter-specific types so consumers of the IPC module
+// can name them without reaching into the individual submodules.
+pub use crate::backend_types::{
+    ConsentRecord, EvilTwinConfig, EvilTwinSession, HiddenSsidCandidate, PmkidCapture,
+    SsidSource, TargetReport, WizardPlan, WizardStep, WizardStepKind,
+};
 
 /// Directory the agent creates (as root) to hold its listening socket.
 pub const RUNTIME_DIR: &str = "/run/netspecter";
@@ -82,6 +91,64 @@ pub enum Request {
 
     /// Ask the agent to clean up and exit.
     Shutdown,
+
+    // ─── NetSpecter-specific extensions (PMKID / WPS / Hidden / Evil-Twin / Wizard / Report / Audit) ───
+
+    /// Trigger a PMKID harvest against the given BSSID. Returns the captured
+    /// PMKID record (or `Error` on timeout).
+    HarvestPmkid {
+        bssid: String,
+        essid: String,
+        timeout_secs: u64,
+    },
+
+    /// Verify a candidate passphrase against a previously-captured PMKID.
+    /// Returns `Bool(true)` if the passphrase is the AP's PSK.
+    VerifyPskAgainstPmkid {
+        candidate: String,
+        ssid: String,
+        bssid: String,
+        sta: String,
+        pmkid_hex: String,
+    },
+
+    /// Build a Smart-Wizard plan for a target AP. Returns the plan.
+    WizardPlanFor {
+        ap: AP,
+    },
+
+    /// Discover the ESSID of a hidden AP. Returns up to three candidates
+    /// (probe / deauth / vendor-OUI), with the highest-confidence first.
+    DiscoverHiddenSsid {
+        bssid: String,
+        channel: String,
+    },
+
+    /// Launch an Evil-Twin session. Returns the new session record.
+    LaunchEvilTwin {
+        config: EvilTwinConfig,
+    },
+
+    /// Stop an Evil-Twin session by its `iface`.
+    StopEvilTwin {
+        iface: String,
+    },
+
+    /// Render a pentest report. Returns the paths of the produced files.
+    GenerateReport {
+        consent: ConsentRecord,
+        targets: Vec<TargetReport>,
+        plans: Vec<WizardPlan>,
+        output_dir: String,
+    },
+
+    /// Read the current audit-chain head (the most recent SHA-256 chain
+    /// hash, or 32 zero bytes if the log is empty).
+    GetAuditChainHead,
+
+    /// Verify the audit chain. Returns `Bool(true)` if every entry's chain
+    /// hash is consistent.
+    VerifyAuditChain,
 }
 
 /// A reply from the agent to a [`Request`].
@@ -112,6 +179,33 @@ pub enum Response {
         data: Vec<u8>,
         last: bool,
     },
+
+    // ─── NetSpecter-specific extension responses ───
+
+    /// Reply to [`Request::HarvestPmkid`] — the captured PMKID record.
+    PmkidCapture(PmkidCapture),
+
+    /// Reply to [`Request::WizardPlanFor`] — the wizard's plan for the AP.
+    WizardPlan(WizardPlan),
+
+    /// Reply to [`Request::DiscoverHiddenSsid`] — 0..=3 candidate ESSIDs,
+    /// sorted by descending confidence.
+    HiddenSsidCandidates(Vec<HiddenSsidCandidate>),
+
+    /// Reply to [`Request::LaunchEvilTwin`] — the live session record.
+    EvilTwinSession(EvilTwinSession),
+
+    /// Reply to [`Request::GenerateReport`] — the paths of the rendered
+    /// files (HTML, JSON, optional PDF).
+    ReportPaths {
+        html: Option<String>,
+        json: String,
+        pdf: Option<String>,
+    },
+
+    /// Reply to [`Request::GetAuditChainHead`] — the current chain head
+    /// (32-byte hex string).
+    ChainHead(String),
 }
 
 /// Write a length-prefixed JSON frame.

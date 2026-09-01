@@ -107,6 +107,26 @@ impl Default for Encryption {
     }
 }
 
+impl Encryption {
+    /// Reverse of [`Encryption::label`] — decode the short label back to
+    /// the enum. Used at the IPC boundary to round-trip a
+    /// `WizardPlan.encryption_label` back into the agent-side enum.
+    pub fn from_label(label: &str) -> Encryption {
+        match label {
+            "OPN" => Encryption::Open,
+            "WEP" => Encryption::Wep,
+            "WPA" => Encryption::Wpa,
+            "WPA2" => Encryption::Wpa2Psk,
+            "WPA2-ENT" => Encryption::Wpa2Enterprise,
+            "WPA3" => Encryption::Wpa3Sae,
+            "WPA3/WPA2" => Encryption::Wpa3Transition,
+            "WPA3-ENT" => Encryption::Wpa3Enterprise,
+            "OWE" => Encryption::Owe,
+            _ => Encryption::Unknown,
+        }
+    }
+}
+
 /// The result of classifying a single AP, with the supporting evidence.
 ///
 /// The agent fills this in once during scan; later modules (PMKID capture,
