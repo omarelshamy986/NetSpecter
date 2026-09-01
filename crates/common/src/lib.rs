@@ -13,6 +13,7 @@ pub mod handshake;
 pub mod ipc;
 pub mod types;
 pub mod wps;
+pub mod wps_tlv;
 
 pub use types::*;
 

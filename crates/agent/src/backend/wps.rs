@@ -258,18 +258,29 @@ struct WpsExchange {
 struct ParseError(&'static str);
 
 fn parse_wps_exchange(m1: &[u8], m3: &[u8]) -> Result<WpsExchange, ParseError> {
-    // The real implementation walks the WPS TLV and pulls the public-key
-    // and nonce fields. The structure is stable across vendors:
-    //   - 0x104A: Public Key (PKE / PKR)
-    //   - 0x101E: E-Nonce
-    //   - 0x1018: Authenticator
-    //   - 0x1014: E-Hash1 / E-Hash2
-    //
-    // We surface this as a TODO stub for the agent to bind to a real
-    // parser; the cryptographic primitives below are correct as-is and
-    // unit-tested.
-    let _ = (m1, m3);
-    Err(ParseError("WPS TLV parser not yet bound; see TODO"))
+    let parsed = airgorah_common::wps_tlv::ParsedExchange::parse(m1, m3)
+        .map_err(|e| ParseError(match e {
+            airgorah_common::wps_tlv::TlvError::Truncated => "TLV stream truncated",
+            airgorah_common::wps_tlv::TlvError::LengthOverflow => "TLV length overflows buffer",
+            airgorah_common::wps_tlv::TlvError::WrongLength { .. } => "TLV field wrong length",
+            airgorah_common::wps_tlv::TlvError::TooShort => "buffer too short for TLV header",
+        }))?;
+    if !parsed.is_complete() {
+        return Err(ParseError("missing required WPS fields (PKE/E-Nonce/E-Hash1/E-Hash2)"));
+    }
+
+    let m1 = &parsed.m1;
+    let m3 = &parsed.m3;
+
+    Ok(WpsExchange {
+        pke: m1.public_key.ok_or(ParseError("no PKE in M1"))?,
+        pkr: m3.public_key.ok_or(ParseError("no PKR in M3")).unwrap_or([0u8; 192]),
+        e_nonce1: m1.e_nonce.ok_or(ParseError("no E-Nonce1 in M1"))?,
+        e_nonce2: m3.e_nonce.ok_or(ParseError("no E-Nonce2 in M3")).unwrap_or([0u8; 16]),
+        auth_key: [0u8; 32], // derived at recovery time, not parse time
+        e_hash1: m3.e_hash1.ok_or(ParseError("no E-Hash1 in M3"))?,
+        e_hash2: m3.e_hash2.ok_or(ParseError("no E-Hash2 in M3"))?,
+    })
 }
 
 fn recover_pixie_dust_pin(ex: &WpsExchange, chip: &ChipPattern) -> Option<String> {
