@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network Authentication Required</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --accent: #0066cc;
+    --text: #1a1d24;
+    --muted: #6b7280;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 8px;
+    padding: 2rem;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  }
+  .brand {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  .brand img {
+    height: 32px;
+    margin-bottom: 0.5rem;
+  }
+  h1 {
+    font-size: 1.25rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+  label {
+    display: block;
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+    color: var(--text);
+  }
+  input[type="password"] {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.95rem;
+    margin-bottom: 1.25rem;
+  }
+  input[type="password"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+  }
+  button {
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.7rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.75rem;
+    margin-top: 1.5rem;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <h1>Network Authentication</h1>
+    </div>
+    <p class="subtitle">
+      Please sign in with your network credentials to access the internet.
+    </p>
+    <form method="POST" action="/captive">
+      <label for="password">Network Password</label>
+      <input type="password" id="password" name="password" required autofocus>
+      <button type="submit">Sign In</button>
+    </form>
+    <p class="footer">
+      Customer Care: 1-800-555-0199<br>
+      © 2026 ISP Holdings Inc.
+    </p>
+  </div>
+</body>
+</html>
