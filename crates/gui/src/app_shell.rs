@@ -13,7 +13,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::frontend::pages::{
-    AuditLogPage, EvilTwinPage, PmkidPage, ReportsPage, SmartWizardPage,
+    AuditLogPage, EvilTwinPage, HiddenNetworksPage, PmkidPage, ReportsPage,
+    SmartWizardPage,
 };
 use crate::ipc_client::IpcClient;
 
@@ -23,6 +24,7 @@ pub struct AppState {
     pub wizard_page: SmartWizardPage,
     pub pmkid_page: PmkidPage,
     pub evil_twin_page: EvilTwinPage,
+    pub hidden_networks_page: HiddenNetworksPage,
     pub reports_page: ReportsPage,
     pub audit_log_page: AuditLogPage,
     pub status_label: Label,
@@ -89,12 +91,14 @@ pub fn build_shell(app: &Application, ipc: IpcClient) -> SharedState {
     let wizard_page = SmartWizardPage::new();
     let pmkid_page = PmkidPage::new();
     let evil_twin_page = EvilTwinPage::new();
+    let hidden_networks_page = HiddenNetworksPage::new();
     let reports_page = ReportsPage::new();
     let audit_log_page = AuditLogPage::new();
 
     notebook.append_page(&wizard_page.root, Some(&Label::new(Some("🧙 Wizard"))));
     notebook.append_page(&pmkid_page.root, Some(&Label::new(Some("🔑 PMKID"))));
     notebook.append_page(&evil_twin_page.root, Some(&Label::new(Some("🎭 Evil Twin"))));
+    notebook.append_page(&hidden_networks_page.root, Some(&Label::new(Some("👻 Hidden"))));
     notebook.append_page(&reports_page.root, Some(&Label::new(Some("📊 Reports"))));
     notebook.append_page(&audit_log_page.root, Some(&Label::new(Some("📋 Audit"))));
 
@@ -106,6 +110,7 @@ pub fn build_shell(app: &Application, ipc: IpcClient) -> SharedState {
         wizard_page,
         pmkid_page,
         evil_twin_page,
+        hidden_networks_page,
         reports_page,
         audit_log_page,
         status_label,

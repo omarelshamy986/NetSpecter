@@ -17,12 +17,14 @@
 
 pub mod audit_log;
 pub mod evil_twin;
+pub mod hidden_networks;
 pub mod pmkid;
 pub mod reports;
 pub mod wizard;
 
 pub use audit_log::AuditLogPage;
 pub use evil_twin::EvilTwinPage;
+pub use hidden_networks::HiddenNetworksPage;
 pub use pmkid::PmkidPage;
 pub use reports::ReportsPage;
 pub use wizard::SmartWizardPage;
