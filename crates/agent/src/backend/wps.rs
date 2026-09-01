@@ -284,18 +284,31 @@ fn parse_wps_exchange(m1: &[u8], m3: &[u8]) -> Result<WpsExchange, ParseError> {
 }
 
 fn recover_pixie_dust_pin(ex: &WpsExchange, chip: &ChipPattern) -> Option<String> {
-    // The full recovery loop:
-    //   1. Derive the WPS secret from E-S1 / E-S2 + the public DH values.
-    //   2. Compute the AuthKey from PSK1 || PSK2.
-    //   3. Brute the 10000 first-half PIN candidates, checking HMAC against E-Hash1.
-    //   4. Brute the 10000 second-half PIN candidates, checking HMAC against E-Hash2.
-    //
-    // We implement steps 3–4 (the actual brute force) here; the secret-
-    // derivation step depends on the chip pattern and is intentionally
-    // a stub in the public surface — operators wanting to verify should
-    // cross-reference against the canonical pixiedust-loop implementation.
-    let _ = (ex, chip);
-    None
+    // The full cryptographic recovery loop:
+    //   1. Derive the WPS DH shared secret from the public-key exchange +
+    //      chip-specific E-S1 / E-S2 weak-PRNG guesses. The 1536-bit DH
+    //      math is delegated to a future PR (see TODO in wps_crypto); for
+    //      now we run the brute against a 32-byte all-zeros shared secret
+    //      placeholder so the loop itself is exercised end-to-end.
+    //   2. brute_first_half() — 10 000 HMAC-SHA1 candidates against E-Hash1.
+    //   3. brute_second_half() — 10 000 HMAC-SHA1 candidates against E-Hash2.
+    //   4. brute_full_pin() stitches the two halves with the WPS checksum.
+    let _ = chip; // chip-specific E-S1/E-S2 patterns are documented; the
+                  // full DH math is the next PR.
+    let shared_secret = [0u8; 32];
+
+    let first = airgorah_common::wps_crypto::brute_first_half(&ex.e_hash1, &shared_secret);
+    let p1 = first.pin_half.as_ref()?;
+    let second = airgorah_common::wps_crypto::brute_second_half(&ex.e_hash2, &shared_secret);
+    let p2 = second.pin_half.as_ref()?;
+
+    // Stitch into the 7-digit PIN and compute the 8th checksum digit.
+    let mut pin7 = [0u8; 7];
+    let p1_bytes = p1.as_bytes();
+    let p2_bytes = p2.as_bytes();
+    pin7[..4].copy_from_slice(p1_bytes);
+    pin7[4..].copy_from_slice(&p2_bytes[..3]);
+    airgorah_common::wps_crypto::build_full_pin(&pin7)
 }
 
 fn run_reaver_with_pin(bssid: &str, pin: &str) -> BruteOutcome {
