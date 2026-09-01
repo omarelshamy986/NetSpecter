@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetSpecter Pentest Report — {{report.engagement_id}}</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #2f81f7;
+    --critical: #f85149;
+    --high: #ff7b72;
+    --medium: #d29922;
+    --low: #3fb950;
+    --info: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem 1rem;
+  }
+  .container { max-width: 980px; margin: 0 auto; }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 2rem;
+    margin-bottom: 2rem;
+  }
+  h1 { font-size: 2rem; font-weight: 600; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.4rem; font-weight: 600; margin: 2rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+  h3 { font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+  .meta { color: var(--muted); font-size: 0.9rem; }
+  .badge {
+    display: inline-block;
+    padding: 0.15rem 0.55rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .badge.critical { background: rgba(248, 81, 73, 0.2); color: var(--critical); border: 1px solid var(--critical); }
+  .badge.high { background: rgba(255, 123, 114, 0.2); color: var(--high); border: 1px solid var(--high); }
+  .badge.medium { background: rgba(210, 153, 34, 0.2); color: var(--medium); border: 1px solid var(--medium); }
+  .badge.low { background: rgba(63, 185, 80, 0.2); color: var(--low); border: 1px solid var(--low); }
+  .badge.info { background: rgba(88, 166, 255, 0.2); color: var(--info); border: 1px solid var(--info); }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+  th, td { padding: 0.6rem; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
+  code { background: var(--card); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.9em; }
+  .footer {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>NetSpecter Pentest Report</h1>
+  <p class="meta">Engagement ID: <code>{{report.engagement_id}}</code></p>
+  <p class="meta">Generated: {{report.generated_at}}</p>
+  <p class="meta">Operator: <code>{{report.operator}}</code></p>
+  <p class="meta">Scope: {{report.scope}}</p>
+  <p class="meta">Rules of Engagement: <code>{{report.rules_of_engagement}}</code></p>
+  <p class="meta">Audit-chain digest: <code>{{report.audit_chain_digest}}</code></p>
+</header>
+
+<h2>Targets</h2>
+{{#if report.targets}}
+<table>
+  <thead><tr>
+    <th>BSSID</th><th>ESSID</th><th>Encryption</th><th>Channel</th>
+    <th>Clients</th><th>Handshake</th><th>PMKID</th><th>WPS</th>
+  </tr></thead>
+  <tbody>
+  {{#each report.targets}}
+  <tr>
+    <td><code>{{bssid}}</code></td>
+    <td>{{essid}}</td>
+    <td>{{encryption}}</td>
+    <td>{{channel}}</td>
+    <td>{{clients_observed}}</td>
+    <td>{{#if handshake_captured}}✓{{else}}—{{/if}}</td>
+    <td>{{#if pmkid_captured}}✓{{else}}—{{/if}}</td>
+    <td>{{#if wps_recovered}}✓{{else}}—{{/if}}</td>
+  </tr>
+  {{/each}}
+  </tbody>
+</table>
+{{else}}
+<p class="meta">No targets in this engagement.</p>
+{{/if}}
+
+<h2>Findings ({{report.findings.length}})</h2>
+{{#if report.findings}}
+{{#each report.findings}}
+<div class="card">
+  <h3>{{title}} <span class="badge {{severity}}">{{severity}}</span></h3>
+  <p>{{description}}</p>
+  <h4 style="margin-top: 0.75rem; color: var(--muted); font-size: 0.85rem; text-transform: uppercase;">Evidence</h4>
+  <ul style="margin-left: 1.25rem;">
+  {{#each evidence}}
+    <li><code>{{kind}}</code> — {{description}} ({{path}})</li>
+  {{/each}}
+  </ul>
+  <h4 style="margin-top: 0.75rem; color: var(--muted); font-size: 0.85rem; text-transform: uppercase;">Remediation</h4>
+  <p>{{remediation}}</p>
+</div>
+{{/each}}
+{{else}}
+<p class="meta">No findings — engagement produced no exploitable weaknesses.</p>
+{{/if}}
+
+<h2>Smart-Wizard Plans</h2>
+{{#if report.wizard_plans}}
+{{#each report.wizard_plans}}
+<div class="card">
+  <h3>{{essid}} ({{bssid}}) — {{encryption}}</h3>
+  <p class="meta">{{rationale}}</p>
+  <table>
+    <thead><tr><th>#</th><th>Title</th><th>Description</th><th>Est.</th></tr></thead>
+    <tbody>
+    {{#each steps}}
+    <tr>
+      <td>{{order}}</td>
+      <td>{{title}}</td>
+      <td>{{description}}</td>
+      <td>{{estimated_secs}}s</td>
+    </tr>
+    {{/each}}
+    </tbody>
+  </table>
+</div>
+{{/each}}
+{{/if}}
+
+<div class="footer">
+  Generated by NetSpecter v1.0.0 — for the defenders who need to think like attackers.<br>
+  Always verify findings against a signed rules-of-engagement document.
+</div>
+
+</div>
+</body>
+</html>
