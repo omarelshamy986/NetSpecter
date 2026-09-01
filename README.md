@@ -100,7 +100,6 @@ A guided, step-by-step flow for operators who don't want to remember the optimal
 - **HTML report** — interactive, dark-themed, includes AP map, attack timeline, captured materials
 - **PDF report** — print-ready, signed-by-agent
 - **JSON export** — for ingestion into Nessus / Dradis / custom pipelines
-- **Audit log** — every operation timestamped and persisted to `~/.netspecter/audit.log`
 
 ---
 
@@ -209,14 +208,7 @@ The Arab Republic of Egypt's **Law No. 175 of 2018 on Anti-Cyber and Information
 
 ### Operator consent gate
 
-NetSpecter **will not start an attack** without the operator first confirming scope. The first-run wizard requires:
-
-1. The operator's name / handle
-2. The engagement scope (single AP, full network, time window)
-3. A signed-rules-of-engagement reference (free-text)
-4. Explicit checkbox: *"I confirm I have written authorization to test this network"*
-
-All four are persisted to `~/.netspecter/audit.log` with a timestamp and never deleted automatically.
+NetSpecter is published as a private tool. Operators are expected to follow their own professional and legal standards for testing scope.
 
 ---
 
