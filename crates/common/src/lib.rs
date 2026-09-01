@@ -12,6 +12,7 @@ pub mod crypto;
 pub mod deps;
 pub mod encryption;
 pub mod handshake;
+pub mod hid;
 pub mod ipc;
 pub mod types;
 pub mod wps;
