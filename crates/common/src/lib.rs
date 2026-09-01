@@ -6,6 +6,7 @@
 //! sides need.
 
 pub mod backend_types;
+pub mod ble;
 pub mod channel;
 pub mod crypto;
 pub mod deps;
