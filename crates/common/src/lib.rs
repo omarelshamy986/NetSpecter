@@ -8,6 +8,7 @@
 pub mod backend_types;
 pub mod ble;
 pub mod channel;
+pub mod cracker;
 pub mod crypto;
 pub mod deps;
 pub mod encryption;
