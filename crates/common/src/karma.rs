@@ -229,6 +229,11 @@ impl KarmaSession {
             )
         };
 
+        // Persist immediately so provision() and the tests can read the
+        // canonical config body from disk.
+        let _ = std::fs::create_dir_all(&self.config.work_dir);
+        let _ = std::fs::write(&config_path, &body);
+
         KarmaVap {
             iface,
             essid: probe.essid.clone(),

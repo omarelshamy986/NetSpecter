@@ -162,7 +162,7 @@ pub fn usage_to_char(usage: u8, shift: bool) -> Option<char> {
             Some(if shift { shifted } else { d as char })
         }
         0x27 => Some(if shift { ')' } else { '0' }),
-        0x2C => Some(if shift { '\n' } else { '\n' }), // Enter
+        0x2C => Some('\n'), // Enter (same with/without shift)
         0x2D => Some(if shift { '_' } else { '-' }),
         0x2E => Some(if shift { '+' } else { '=' }),
         0x2F => Some(if shift { '{' } else { '[' }),

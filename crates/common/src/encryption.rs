@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 /// Every variant is reachable from a single passive capture; [`Encryption::Unknown`]
 /// is the catch-all for frames that look encrypted but cannot be classified
 /// (most often: an 802.11w / PMF-protected management frame).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum Encryption {
     /// Open network — no encryption.
@@ -44,6 +44,7 @@ pub enum Encryption {
     /// but without authentication; relevant for visibility, not credential attack.
     Owe,
     /// Captured an RSN/WPA IE we couldn't classify (e.g. vendor-private AKM).
+    #[default]
     Unknown,
 }
 
@@ -64,6 +65,24 @@ impl Encryption {
         }
     }
 
+    /// Reverse of [`Encryption::label`] — decode the short label back to
+    /// the enum. Used at the IPC boundary to round-trip a
+    /// `WizardPlan.encryption_label` back into the agent-side enum.
+    pub fn from_label(label: &str) -> Encryption {
+        match label {
+            "OPN" => Encryption::Open,
+            "WEP" => Encryption::Wep,
+            "WPA" => Encryption::Wpa,
+            "WPA2" => Encryption::Wpa2Psk,
+            "WPA2-ENT" => Encryption::Wpa2Enterprise,
+            "WPA3" => Encryption::Wpa3Sae,
+            "WPA3/WPA2" => Encryption::Wpa3Transition,
+            "WPA3-ENT" => Encryption::Wpa3Enterprise,
+            "OWE" => Encryption::Owe,
+            _ => Encryption::Unknown,
+        }
+    }
+   
     /// Is this encryption class in scope for an offline PSK attack?
     ///
     /// Drives the Smart-Wizard's "best attack" decision.
@@ -98,32 +117,6 @@ impl Encryption {
     /// Is this AP a downgrade target (WPA3-SAE with WPA2 fallback)?
     pub fn downgrade_target(&self) -> bool {
         matches!(self, Encryption::Wpa3Transition)
-    }
-}
-
-impl Default for Encryption {
-    fn default() -> Self {
-        Encryption::Unknown
-    }
-}
-
-impl Encryption {
-    /// Reverse of [`Encryption::label`] — decode the short label back to
-    /// the enum. Used at the IPC boundary to round-trip a
-    /// `WizardPlan.encryption_label` back into the agent-side enum.
-    pub fn from_label(label: &str) -> Encryption {
-        match label {
-            "OPN" => Encryption::Open,
-            "WEP" => Encryption::Wep,
-            "WPA" => Encryption::Wpa,
-            "WPA2" => Encryption::Wpa2Psk,
-            "WPA2-ENT" => Encryption::Wpa2Enterprise,
-            "WPA3" => Encryption::Wpa3Sae,
-            "WPA3/WPA2" => Encryption::Wpa3Transition,
-            "WPA3-ENT" => Encryption::Wpa3Enterprise,
-            "OWE" => Encryption::Owe,
-            _ => Encryption::Unknown,
-        }
     }
 }
 
