@@ -7,6 +7,7 @@
 
 pub mod backend_types;
 pub mod ble;
+pub mod caplet;
 pub mod channel;
 pub mod cracker;
 pub mod crypto;
