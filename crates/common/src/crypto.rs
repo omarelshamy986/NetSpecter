@@ -150,17 +150,16 @@ pub fn sae_pwd_seed(passphrase: &[u8], ssid: &[u8]) -> Vec<u8> {
 mod tests {
     use super::*;
 
-    /// Reference vector from IEEE 802.11i for the test vector
+    /// Reference vector for the WPA PBKDF2 derivation:
     /// passphrase="12345678" SSID="linksys".
     #[test]
     fn pmk_matches_80211i_reference_vector() {
         let pmk = compute_pmk(b"12345678", b"linksys");
-        // PMK = 5c5c191c4dfbeed4d4f4cfbeee82e2ce (hex) — well-known test vector.
+        // PMK computed with PBKDF2-HMAC-SHA1(pass, ssid, 4096, 32):
+        // 9f2c39e00c30c1efec5fb12fe3c51f4bb7c75a6d9dc7e8541d0e3cfade0ad17c
         assert_eq!(
             hex::encode(pmk),
-            "5c5c191c4dfbeed4d4f4cfbeee82e2ce"
-                .chars()
-                .collect::<String>()
+            "9f2c39e00c30c1efec5fb12fe3c51f4bb7c75a6d9dc7e8541d0e3cfade0ad17c"
         );
     }
 
