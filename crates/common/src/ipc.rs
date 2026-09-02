@@ -3,6 +3,7 @@
 //! Wire format: a 4-byte big-endian length prefix followed by a JSON-encoded
 //! [`Request`] or [`Response`].
 
+use crate::autopwn::AutoPwnConfig;
 use crate::types::*;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
