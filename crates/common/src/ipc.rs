@@ -3,9 +3,7 @@
 //! Wire format: a 4-byte big-endian length prefix followed by a JSON-encoded
 //! [`Request`] or [`Response`].
 
-use crate::encryption::RsnIe;
 use crate::types::*;
-use crate::wps::WpsOutcome;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::io::{self, Read, Write};

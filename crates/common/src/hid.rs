@@ -273,9 +273,10 @@ pub fn render_session(device: &HidDevice, packets: &[EsbPacket]) -> String {
         if let HidReport::Keystroke {
             usage_code, modifiers, ..
         } = decode_report(device.protocol, &pkt.payload)
-            && let Some(ch) = render_keystroke(usage_code, modifiers)
         {
-            out.push(ch);
+            if let Some(ch) = render_keystroke(usage_code, modifiers) {
+                out.push(ch);
+            }
         }
     }
     out

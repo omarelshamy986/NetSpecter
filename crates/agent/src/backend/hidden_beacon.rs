@@ -49,8 +49,8 @@
 //! response or the operator-driven timeout fires.
 
 use crate::globals::*;
-use airgorah_common::hidden::HiddenSsidCandidate;
-use airgorah_common::hidden::SsidSource;
+use netspecter_common::hidden::HiddenSsidCandidate;
+use netspecter_common::hidden::SsidSource;
 use chrono::Utc;
 use libwifi::Addresses;
 use libwifi::Frame;
@@ -164,15 +164,17 @@ fn beacon_flood_worker(
 
         // 2. Listen briefly for a probe request addressed at our BSSID.
         if let Ok(n) = super::raw_socket::recv(&socket, &mut rx_buf) {
-            if n > 0
-                && let Some(candidate) = extract_probe_for_target(&rx_buf[..n], &config.target_bssid)
-            {
-                log::info!(
-                    "[hidden::beacon_flood] recovered ESSID '{}' after {} beacons",
-                    candidate.essid,
-                    beacons_sent
-                );
-                return Some(candidate);
+            if n > 0 {
+                if let Some(candidate) =
+                    extract_probe_for_target(&rx_buf[..n], &config.target_bssid)
+                {
+                    log::info!(
+                        "[hidden::beacon_flood] recovered ESSID '{}' after {} beacons",
+                        candidate.essid,
+                        beacons_sent
+                    );
+                    return Some(candidate);
+                }
             }
         }
 
@@ -276,7 +278,7 @@ fn extract_probe_for_target(frame: &[u8], target_bssid: &[u8; 6]) -> Option<Hidd
         source: SsidSource::BeaconFlood,
         observations: 1,
         first_seen: Utc::now().to_rfc3339(),
-        leaking_client: Some(airgorah_common::crypto::format_mac(
+        leaking_client: Some(netspecter_common::crypto::format_mac(
             &header.ta().to_long_string().as_bytes()[..6].try_into().ok()?,
         )),
     })

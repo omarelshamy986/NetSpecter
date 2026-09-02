@@ -32,7 +32,7 @@
 //! into their existing cracking pipeline.
 
 use crate::globals::*;
-use airgorah_common::types::*;
+use netspecter_common::types::*;
 use chrono::Utc;
 use libwifi::frame::EapolKey;
 use libwifi::{Addresses, Frame};
@@ -188,12 +188,12 @@ pub fn persist_pmkid(
 /// world captures take <2 seconds when the AP is responsive.
 pub fn harvest_pmkid(bssid: &str, essid: &str, timeout_secs: u64) -> Option<PmkidCapture> {
     let iface = get_iface().as_ref()?.clone();
-    let bssid_bytes = airgorah_common::crypto::parse_mac(bssid)?;
+    let bssid_bytes = netspecter_common::crypto::parse_mac(bssid)?;
     let station_bytes = rand_sta_mac();
 
     log::info!(
         "[{bssid}] starting PMKID harvest (timeout {timeout_secs}s, station {})",
-        airgorah_common::crypto::format_mac(&station_bytes),
+        netspecter_common::crypto::format_mac(&station_bytes),
     );
 
     let raw_socket = super::raw_socket::open(&iface).ok()?;
@@ -210,8 +210,8 @@ pub fn harvest_pmkid(bssid: &str, essid: &str, timeout_secs: u64) -> Option<Pmki
                 // the operator can re-open it with tshark.
                 append_pcap_record(&mut pcap_buf, &frame[..n], 127);
                 if let Some(pmkid) = extract_pmkid_from_m1(&frame[..n]) {
-                    let bssid_s = airgorah_common::crypto::format_mac(&bssid_bytes);
-                    let sta_s = airgorah_common::crypto::format_mac(&station_bytes);
+                    let bssid_s = netspecter_common::crypto::format_mac(&bssid_bytes);
+                    let sta_s = netspecter_common::crypto::format_mac(&station_bytes);
                     return persist_pmkid(&bssid_s, &sta_s, essid, &pmkid, &pcap_buf).ok();
                 }
             }

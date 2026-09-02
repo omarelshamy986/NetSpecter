@@ -27,9 +27,10 @@
 //! of the existing attack modules (`pmkid`, `wps`, `deauth`,
 //! `evil_twin`). This module is pure scheduling + state.
 
-use airgorah_common::cracker::{CrackJob, CrackJobStatus, CrackQueue, CrackTarget};
+use crate::cracker::{CrackJob, CrackJobStatus, CrackQueue, CrackTarget};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -99,7 +100,7 @@ impl AttackJob {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AttackJobStatus {
     Queued,

@@ -28,7 +28,7 @@
 //! Method 2 is the only active attack in this module — methods 1 and 3
 //! are fully passive.
 
-use airgorah_common::types::*;
+use netspecter_common::types::*;
 use libwifi::{Addresses, Frame};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -71,7 +71,7 @@ pub fn harvest_via_probes(
     timeout: Duration,
     on_observation: &mut dyn FnMut(&HiddenSsidCandidate),
 ) -> Option<HiddenSsidCandidate> {
-    let bssid_bytes = airgorah_common::crypto::parse_mac(bssid)?;
+    let bssid_bytes = netspecter_common::crypto::parse_mac(bssid)?;
     let iface = crate::globals::get_iface().clone()?;
     let socket = super::raw_socket::open(&iface).ok()?;
 
@@ -121,8 +121,8 @@ fn extract_essid_from_probe(frame: &Frame, target_bssid: &[u8; 6]) -> Option<Hid
     }
     let leaking_client = header
         .ra()
-        .map(|m| airgorah_common::crypto::format_mac(&m.to_long_string().as_bytes()[..6].try_into().ok()?))
-        .or_else(|| Some(airgorah_common::crypto::format_mac(&header.ta().to_long_string().as_bytes()[..6].try_into().ok()?)));
+        .map(|m| netspecter_common::crypto::format_mac(&m.to_long_string().as_bytes()[..6].try_into().ok()?))
+        .or_else(|| Some(netspecter_common::crypto::format_mac(&header.ta().to_long_string().as_bytes()[..6].try_into().ok()?)));
 
     Some(HiddenSsidCandidate {
         essid: essid.to_string(),
@@ -145,7 +145,7 @@ pub fn reveal_via_deauth(
     timeout: Duration,
 ) -> Option<HiddenSsidCandidate> {
     let iface = crate::globals::get_iface().clone()?;
-    let bssid_bytes = airgorah_common::crypto::parse_mac(bssid)?;
+    let bssid_bytes = netspecter_common::crypto::parse_mac(bssid)?;
 
     // Step 1: deauth every client. The agent already has a deauth loop in
     // `deauth.rs`; we use the broadcast variant here (FF:FF:FF:FF:FF:FF).
@@ -266,7 +266,7 @@ pub fn discover_hidden_essid(
 /// predictable ESSID schemes keyed on serial number). We ship a tiny
 /// in-memory stub here.
 fn vendor_guess(bssid: &str) -> Option<HiddenSsidCandidate> {
-    let bytes = airgorah_common::crypto::parse_mac(bssid)?;
+    let bytes = netspecter_common::crypto::parse_mac(bssid)?;
     let oui = format!(
         "{:02x}:{:02x}:{:02x}",
         bytes[0], bytes[1], bytes[2]

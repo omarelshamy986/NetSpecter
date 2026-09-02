@@ -370,8 +370,8 @@ fn connect_decrypt_button(app_data: Rc<AppData>) {
                 ) {
                     return ErrorDialog::spawn(&app_data.decrypt_gui.window, "Failed to run decryption", &e.to_string());
                 }
-            } else if stack == "bruteforce"
-                && let Err(e) = backend::run_decrypt_bruteforce_process(
+            } else if stack == "bruteforce" {
+                if let Err(e) = backend::run_decrypt_bruteforce_process(
                     &handshake_entry,
                     &bssid,
                     &essid,
@@ -379,8 +379,9 @@ fn connect_decrypt_button(app_data: Rc<AppData>) {
                     min,
                     max,
                 )
-            {
-                return ErrorDialog::spawn(&app_data.decrypt_gui.window, "Failed to run decryption", &e.to_string());
+                {
+                    return ErrorDialog::spawn(&app_data.decrypt_gui.window, "Failed to run decryption", &e.to_string());
+                }
             }
 
             app_data.decrypt_gui.window.close();

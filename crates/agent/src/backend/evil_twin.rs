@@ -30,7 +30,7 @@
 //! the agent's process tree small and lets the operator replace any of the
 //! external tools without touching NetSpecter.
 
-use airgorah_common::types::*;
+use netspecter_common::types::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -111,10 +111,10 @@ pub struct CapturedCredential {
 /// The function returns once hostapd is up (or fails); the daemon continues
 /// running in the background.
 pub fn launch(config: EvilTwinConfig) -> Result<EvilTwinSession, EvilTwinError> {
-    if airgorah_common::deps::which("hostapd").is_none() {
+    if netspecter_common::deps::which("hostapd").is_none() {
         return Err(EvilTwinError::MissingTool("hostapd"));
     }
-    if airgorah_common::deps::which("dnsmasq").is_none() {
+    if netspecter_common::deps::which("dnsmasq").is_none() {
         return Err(EvilTwinError::MissingTool("dnsmasq"));
     }
 
@@ -174,16 +174,16 @@ pub fn verify_psk_against_pmkid(
     sta: &str,
     captured_pmkid_hex: &str,
 ) -> bool {
-    let pmk = airgorah_common::crypto::compute_pmk(candidate.as_bytes(), ssid.as_bytes());
-    let bssid_bytes = match airgorah_common::crypto::parse_mac(bssid) {
+    let pmk = netspecter_common::crypto::compute_pmk(candidate.as_bytes(), ssid.as_bytes());
+    let bssid_bytes = match netspecter_common::crypto::parse_mac(bssid) {
         Some(b) => b,
         None => return false,
     };
-    let sta_bytes = match airgorah_common::crypto::parse_mac(sta) {
+    let sta_bytes = match netspecter_common::crypto::parse_mac(sta) {
         Some(b) => b,
         None => return false,
     };
-    let computed = airgorah_common::crypto::compute_pmkid(&pmk, &bssid_bytes, &sta_bytes);
+    let computed = netspecter_common::crypto::compute_pmkid(&pmk, &bssid_bytes, &sta_bytes);
     let computed_hex: String = computed.iter().map(|b| format!("{:02x}", b)).collect();
     computed_hex.eq_ignore_ascii_case(captured_pmkid_hex)
 }
@@ -293,14 +293,14 @@ mod tests {
         // The corresponding PMKID is:
         //   HMAC-SHA1(PMK, "PMK Name"||BSSID||STA)[..16]
         // We can compute it offline and check our verify function recognizes it.
-        let pmk = airgorah_common::crypto::compute_pmk(b"12345678", b"linksys");
+        let pmk = netspecter_common::crypto::compute_pmk(b"12345678", b"linksys");
         let bssid = [0x02, 0x00, 0x00, 0x00, 0x00, 0x00];
         let sta = [0x02, 0x00, 0x00, 0x00, 0x01, 0x00];
-        let pmkid = airgorah_common::crypto::compute_pmkid(&pmk, &bssid, &sta);
+        let pmkid = netspecter_common::crypto::compute_pmkid(&pmk, &bssid, &sta);
         let pmkid_hex: String = pmkid.iter().map(|b| format!("{:02x}", b)).collect();
 
-        let bssid_s = airgorah_common::crypto::format_mac(&bssid);
-        let sta_s = airgorah_common::crypto::format_mac(&sta);
+        let bssid_s = netspecter_common::crypto::format_mac(&bssid);
+        let sta_s = netspecter_common::crypto::format_mac(&sta);
 
         assert!(verify_psk_against_pmkid(
             "12345678",

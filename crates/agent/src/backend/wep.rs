@@ -21,8 +21,8 @@
 //! to (a) collect enough IVs and (b) parse the output reliably.
 
 use crate::globals::*;
-use airgorah_common::encryption::Encryption;
-use airgorah_common::types::*;
+use netspecter_common::encryption::Encryption;
+use netspecter_common::types::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -96,10 +96,10 @@ pub fn start_wep_collection(
     ap: &AP,
     strategy: WepStrategy,
 ) -> Result<WepCollection, WepError> {
-    if airgorah_common::deps::which("airodump-ng").is_none() {
+    if netspecter_common::deps::which("airodump-ng").is_none() {
         return Err(WepError::MissingTool("airodump-ng"));
     }
-    if airgorah_common::deps::which("aireplay-ng").is_none() {
+    if netspecter_common::deps::which("aireplay-ng").is_none() {
         return Err(WepError::MissingTool("aireplay-ng"));
     }
 

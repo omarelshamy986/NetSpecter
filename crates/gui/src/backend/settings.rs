@@ -20,11 +20,12 @@ fn user_config_path() -> Option<PathBuf> {
 pub fn load_settings() {
     let mut settings = Settings::default();
 
-    if let Some(path) = user_config_path()
-        && let Ok(content) = std::fs::read_to_string(&path)
-        && let Ok(user) = toml::from_str::<Settings>(&content)
-    {
-        settings = user;
+    if let Some(path) = user_config_path() {
+        if let Ok(content) = std::fs::read_to_string(&path) {
+            if let Ok(user) = toml::from_str::<Settings>(&content) {
+                settings = user;
+            }
+        }
     }
 
     if settings.kill_network_manager && !deps::is_installed(deps::SYSTEMCTL) {

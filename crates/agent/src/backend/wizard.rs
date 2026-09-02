@@ -16,8 +16,8 @@
 //! The output is a `WizardPlan` — an ordered list of `WizardStep` that
 //! the GUI can render as a checklist.
 
-use airgorah_common::encryption::Encryption;
-use airgorah_common::types::*;
+use netspecter_common::encryption::Encryption;
+use netspecter_common::types::*;
 use serde::{Deserialize, Serialize};
 
 /// What the wizard recommends the operator do for a single target AP.

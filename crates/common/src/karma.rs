@@ -40,7 +40,7 @@
 //! the attack). Operators must only run this in environments where
 //! every present client is authorized for testing.
 
-use airgorah_common::backend_types::CapturedCredential;
+use netspecter_common::backend_types::CapturedCredential;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;

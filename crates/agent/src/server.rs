@@ -357,7 +357,7 @@ fn dispatch(request: Request) -> (Response, bool) {
             if !is_valid_mac(&bssid) {
                 return (err("invalid BSSID for beacon-flood attack"), false);
             }
-            let bssid_bytes = match airgorah_common::crypto::parse_mac(&bssid) {
+            let bssid_bytes = match netspecter_common::crypto::parse_mac(&bssid) {
                 Some(b) => b,
                 None => return (err("could not parse BSSID"), false),
             };

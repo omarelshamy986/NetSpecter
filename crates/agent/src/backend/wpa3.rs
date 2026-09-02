@@ -29,8 +29,8 @@
 //! probe-transition (which would require sending a probe request and
 //! reading the response) because it has marginal benefit and adds noise.
 
-use airgorah_common::encryption::{Encryption, RsnIe};
-use airgorah_common::types::*;
+use netspecter_common::encryption::{Encryption, RsnIe};
+use netspecter_common::types::*;
 use serde::{Deserialize, Serialize};
 
 /// The result of classifying a single AP's encryption posture.

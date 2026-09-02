@@ -30,8 +30,8 @@
 //! HIGH confidence from 3 independent sources (Probe + DeauthReassoc +
 //! BeaconFlood)", which is exactly what an auditor wants to see.
 
-use airgorah_common::backend_types::HiddenSsidCandidate;
-use airgorah_common::backend_types::SsidSource;
+use netspecter_common::backend_types::HiddenSsidCandidate;
+use netspecter_common::backend_types::SsidSource;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
