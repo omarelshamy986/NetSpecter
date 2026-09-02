@@ -14,6 +14,7 @@ pub mod encryption;
 pub mod handshake;
 pub mod hid;
 pub mod ipc;
+pub mod karma;
 pub mod types;
 pub mod wps;
 pub mod wps_crypto;
