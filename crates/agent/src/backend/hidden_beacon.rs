@@ -50,8 +50,7 @@
 
 use crate::globals::*;
 use super::interface::get_iface;
-use netspecter_common::hidden::HiddenSsidCandidate;
-use netspecter_common::hidden::SsidSource;
+use netspecter_common::backend_types::{HiddenSsidCandidate, SsidSource};
 use chrono::Utc;
 use libwifi::Addresses;
 use libwifi::Frame;

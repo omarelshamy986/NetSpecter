@@ -6,6 +6,8 @@
 //! the agent runs as root with `/usr/sbin` on `PATH` and can see tools the
 //! unprivileged GUI cannot, so the check must happen on each side.
 
+use which as which_crate;
+
 /// Which netspecter process invokes a given tool.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Requirer {
@@ -85,9 +87,15 @@ pub const TOOLS: &[Tool] = &[
     },
 ];
 
+/// Resolve an external tool's path, or `None` when it's not installed.
+/// Convenience wrapper so callers can both test presence and spawn.
+pub fn which(name: &str) -> Option<std::path::PathBuf> {
+    which_crate::which(name).ok()
+}
+
 /// Whether a tool is available on the current process's `PATH`.
 pub fn is_installed(name: &str) -> bool {
-    which::which(name).is_ok()
+    which(name).is_some()
 }
 
 /// The required tools for `who` that are not installed, checked in the calling
