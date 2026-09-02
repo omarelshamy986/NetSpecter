@@ -504,6 +504,49 @@ fn dispatch(request: Request) -> (Response, bool) {
             )
         }
 
+        Request::StartAutoPwn { config } => {
+            // Launch the pipeline; the receiver is parked in a global so
+            // PollAutoPwn can drain it.
+            let rx = backend::autopwn_runner::run_auto_pwn(config);
+            let mut store = get_autopwn_events().lock().unwrap();
+            *store = Some(rx);
+            (Response::AutoPwnStarted, false)
+        }
+
+        Request::PollAutoPwn => {
+            let mut store = get_autopwn_events().lock().unwrap();
+            match store.as_mut() {
+                Some(rx) => {
+                    let mut events = Vec::new();
+                    let mut result = None;
+                    // Drain everything currently queued (non-blocking).
+                    while let Ok(msg) = rx.try_recv() {
+                        match msg {
+                            backend::autopwn_runner::PipelineMessage::Event(e) => {
+                                events.push(e);
+                            }
+                            backend::autopwn_runner::PipelineMessage::Done(r) => {
+                                result = Some(r);
+                            }
+                        }
+                    }
+                    if result.is_some() {
+                        // Pipeline finished — clear the store so the next
+                        // run gets a fresh channel.
+                        *store = None;
+                    }
+                    (Response::AutoPwnEvents { events, result }, false)
+                }
+                None => (
+                    Response::AutoPwnEvents {
+                        events: Vec::new(),
+                        result: None,
+                    },
+                    false,
+                ),
+            }
+        }
+
 Request::Shutdown => (Response::Ok, true),
     }
 }
