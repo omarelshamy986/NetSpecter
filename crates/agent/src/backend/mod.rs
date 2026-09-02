@@ -16,6 +16,7 @@ pub mod sniffer;
 pub mod vendors;
 pub mod wep;
 pub mod wpa3;
+pub mod wizard;
 pub mod wps;
 
 pub use app::*;
@@ -33,4 +34,5 @@ pub use scan::*;
 pub use vendors::*;
 pub use wep::*;
 pub use wpa3::*;
+pub use wizard::*;
 pub use wps::*;

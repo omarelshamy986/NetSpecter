@@ -212,17 +212,7 @@ pub fn summarize(c: &CorroboratedCandidate) -> String {
     s
 }
 
-impl SsidSource {
-    pub fn source_label(&self) -> &'static str {
-        match self {
-            SsidSource::ProbeRequest => "probe",
-            SsidSource::DeauthReassoc => "deauth-reassoc",
-            SsidSource::ProbeResponse => "probe-resp",
-            SsidSource::VendorGuess => "vendor-guess",
-            SsidSource::BeaconFlood => "beacon-flood",
-        }
-    }
-}
+
 
 #[cfg(test)]
 mod tests {

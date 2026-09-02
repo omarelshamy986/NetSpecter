@@ -32,6 +32,7 @@
 //! into their existing cracking pipeline.
 
 use crate::globals::*;
+use super::interface::get_iface;
 use netspecter_common::types::*;
 use chrono::Utc;
 use libwifi::frame::EapolKey;
@@ -98,12 +99,11 @@ impl PmkidCapture {
 /// until one is seen.
 pub fn extract_pmkid_from_m1(frame: &[u8]) -> Option<[u8; 16]> {
     let frame = libwifi::parse_frame(frame, false).ok()?;
-    let data = match frame {
-        Frame::Data(d) => d,
-        Frame::QosData(d) => d,
+    let key = match frame {
+        Frame::Data(d) => d.eapol_key.as_ref()?,
+        Frame::QosData(d) => d.eapol_key.as_ref()?,
         _ => return None,
     };
-    let key = data.eapol_key.as_ref()?;
     pmkid_from_eapol_key(key)
 }
 

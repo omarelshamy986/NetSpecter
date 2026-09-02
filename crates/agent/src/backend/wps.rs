@@ -381,7 +381,6 @@ struct BruteOutcome {
 
 fn parse_brute_output(stdout: &str, tool: &str) -> (bool, Option<String>, String) {
     if let Some(pin) = extract_field(stdout, "WPS PIN:") {
-        let psk = extract_field(stdout, "WPA PSK:");
         return (true, Some(pin), format!("PIN recovered via {tool}"));
     }
     if stdout.contains("WARNING: WPS lockout") || stdout.contains("AP rate-limiting") {
@@ -393,7 +392,7 @@ fn parse_brute_output(stdout: &str, tool: &str) -> (bool, Option<String>, String
 fn get_iface() -> Option<String> {
     // The agent exposes the active monitor-mode interface via the
     // existing globals module; here we just call through.
-    crate::globals::get_iface()
+    super::interface::get_iface()
 }
 
 // ───────────────────────── unit tests ─────────────────────────

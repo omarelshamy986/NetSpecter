@@ -37,6 +37,19 @@ pub enum SsidSource {
     BeaconFlood,
 }
 
+impl SsidSource {
+    /// Compact label for UI rendering.
+    pub fn source_label(&self) -> &'static str {
+        match self {
+            SsidSource::ProbeRequest => "probe",
+            SsidSource::DeauthReassoc => "deauth-reassoc",
+            SsidSource::ProbeResponse => "probe-resp",
+            SsidSource::VendorGuess => "vendor-guess",
+            SsidSource::BeaconFlood => "beacon-flood",
+        }
+    }
+}
+
 /// A candidate ESSID for a hidden AP.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct HiddenSsidCandidate {

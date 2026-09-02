@@ -72,7 +72,7 @@ pub fn harvest_via_probes(
     on_observation: &mut dyn FnMut(&HiddenSsidCandidate),
 ) -> Option<HiddenSsidCandidate> {
     let bssid_bytes = netspecter_common::crypto::parse_mac(bssid)?;
-    let iface = crate::globals::get_iface().clone()?;
+    let iface = super::interface::get_iface().clone()?;
     let socket = super::raw_socket::open(&iface).ok()?;
 
     let deadline = Instant::now() + timeout;
@@ -112,7 +112,7 @@ fn extract_essid_from_probe(frame: &Frame, target_bssid: &[u8; 6]) -> Option<Hid
     let Some(bssid) = header.bssid() else {
         return None;
     };
-    if bssid != target_bssid {
+    if bssid.to_long_string().to_lowercase() != netspecter_common::crypto::format_mac(target_bssid).to_lowercase() {
         return None;
     }
     let essid = probe.station_info.essid()?;
@@ -121,8 +121,8 @@ fn extract_essid_from_probe(frame: &Frame, target_bssid: &[u8; 6]) -> Option<Hid
     }
     let leaking_client = header
         .ra()
-        .map(|m| netspecter_common::crypto::format_mac(&m.to_long_string().as_bytes()[..6].try_into().ok()?))
-        .or_else(|| Some(netspecter_common::crypto::format_mac(&header.ta().to_long_string().as_bytes()[..6].try_into().ok()?)));
+        .map(|m| m.to_long_string())
+        .or_else(|| Some(header.ta().to_long_string()));
 
     Some(HiddenSsidCandidate {
         essid: essid.to_string(),
@@ -144,7 +144,7 @@ pub fn reveal_via_deauth(
     channel: &str,
     timeout: Duration,
 ) -> Option<HiddenSsidCandidate> {
-    let iface = crate::globals::get_iface().clone()?;
+    let iface = super::interface::get_iface().clone()?;
     let bssid_bytes = netspecter_common::crypto::parse_mac(bssid)?;
 
     // Step 1: deauth every client. The agent already has a deauth loop in
@@ -204,7 +204,7 @@ fn extract_essid_from_reassoc(frame: &Frame, target_bssid: &[u8; 6]) -> Option<H
     };
     let header = &reassoc.header;
     let Some(bssid) = header.bssid() else { return None; };
-    if bssid != target_bssid {
+    if bssid.to_long_string().to_lowercase() != netspecter_common::crypto::format_mac(target_bssid).to_lowercase() {
         return None;
     }
     let essid = reassoc.station_info.essid()?;

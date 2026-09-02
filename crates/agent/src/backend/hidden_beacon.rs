@@ -49,6 +49,7 @@
 //! response or the operator-driven timeout fires.
 
 use crate::globals::*;
+use super::interface::get_iface;
 use netspecter_common::hidden::HiddenSsidCandidate;
 use netspecter_common::hidden::SsidSource;
 use chrono::Utc;
@@ -266,7 +267,7 @@ fn extract_probe_for_target(frame: &[u8], target_bssid: &[u8; 6]) -> Option<Hidd
     };
     let header = &probe.header;
     let Some(bssid) = header.bssid() else { return None };
-    if bssid != target_bssid {
+    if bssid.to_long_string().to_lowercase() != netspecter_common::crypto::format_mac(target_bssid).to_lowercase() {
         return None;
     }
     let essid = probe.station_info.essid()?;
@@ -278,9 +279,7 @@ fn extract_probe_for_target(frame: &[u8], target_bssid: &[u8; 6]) -> Option<Hidd
         source: SsidSource::BeaconFlood,
         observations: 1,
         first_seen: Utc::now().to_rfc3339(),
-        leaking_client: Some(netspecter_common::crypto::format_mac(
-            &header.ta().to_long_string().as_bytes()[..6].try_into().ok()?,
-        )),
+        leaking_client: Some(header.ta().to_long_string()),
     })
 }
 
@@ -335,11 +334,11 @@ mod tests {
 
     #[test]
     fn beacon_frame_caps_differ_per_encryption() {
-        let mut caps_open = build_beacon_frame(&BeaconFloodConfig {
+        let caps_open = build_beacon_frame(&BeaconFloodConfig {
             encryption: EncryptionHint::Open,
             ..BeaconFloodConfig::new([0; 6], 6)
         });
-        let mut caps_wpa = build_beacon_frame(&BeaconFloodConfig {
+        let caps_wpa = build_beacon_frame(&BeaconFloodConfig {
             encryption: EncryptionHint::Wpa2Psk,
             ..BeaconFloodConfig::new([0; 6], 6)
         });

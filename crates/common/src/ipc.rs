@@ -12,8 +12,9 @@ use std::io::{self, Read, Write};
 // Re-export the NetSpecter-specific types so consumers of the IPC module
 // can name them without reaching into the individual submodules.
 pub use crate::backend_types::{
-    EvilTwinConfig, EvilTwinSession, HiddenSsidCandidate, PmkidCapture,
-    SsidSource, TargetReport, WizardPlan, WizardStep, WizardStepKind,
+    CapturedCredential, EvilTwinConfig, EvilTwinSession, HiddenSsidCandidate,
+    PmkidCapture, SsidSource, TargetReport, WizardPlan, WizardStep,
+    WizardStepKind,
 };
 
 /// Directory the agent creates (as root) to hold its listening socket.
