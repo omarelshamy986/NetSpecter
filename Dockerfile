@@ -26,6 +26,6 @@ ENV ARCHLINUX_DEPS="--depends gtk4 --depends dbus --depends iproute2"
 
 # Build and package the project
 CMD cargo build && \
-    fpm -f -t deb -p airgorah_`arch`.deb -a native $DEBIAN_DEPS && \
-    fpm -f -t rpm -p airgorah_`arch`.rpm -a native $REDHAT_DEPS && \
-    fpm -f -t pacman -p airgorah_`arch`.pkg.tar.zst -a native $ARCHLINUX_DEPS
+    fpm -f -t deb -p netspecter_`arch`.deb -a native $DEBIAN_DEPS && \
+    fpm -f -t rpm -p netspecter_`arch`.rpm -a native $REDHAT_DEPS && \
+    fpm -f -t pacman -p netspecter_`arch`.pkg.tar.zst -a native $ARCHLINUX_DEPS
