@@ -6,7 +6,7 @@ use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 use std::thread::JoinHandle;
 
-pub static APP_ID: &str = "com.molivier.netspecter";
+pub static APP_ID: &str = "com.abdo.netspecter";
 pub use netspecter_common::VERSION;
 
 pub static APP_ICON: &[u8] =

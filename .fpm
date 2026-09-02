@@ -1,13 +1,13 @@
--s dir ./target/debug/airgorah ./target/debug/airgorah-agent ./crates/gui/icons/app_icon.png package README.md LICENSE
---name airgorah
+-s dir ./target/debug/netspecter ./target/debug/netspecter-agent ./crates/gui/icons/app_icon.png package README.md LICENSE
+--name netspecter
 --license MIT
---version 0.8.1
---description "A WiFi security auditing software mainly based on aircrack-ng tools suite"
---url "https://github.com/martin-olivier/airgorah"
---maintainer "Martin Olivier <martin.olivier@live.fr>"
+--version 1.0.0
+--description "Advanced WiFi security auditing suite — PMKID, WPS, WEP, WPA3 detection, Evil Twin, hidden SSID discovery, smart wizard UI, HTML/PDF reports. Authorized pentesting only."
+--url "https://github.com/AbD02018/NetSpecter"
+--maintainer "AbD02018 <ana.abdo2013@gmail.com>"
 
---provides airgorah
---conflicts airgorah
+--provides netspecter
+--conflicts netspecter
 
 --depends bash
 --depends xterm
@@ -16,12 +16,12 @@
 --depends aircrack-ng
 --depends adwaita-icon-theme
 
-target/debug/airgorah=/usr/bin/airgorah
-target/debug/airgorah-agent=/usr/bin/airgorah-agent
-crates/gui/icons/app_icon.png=/usr/share/pixmaps/airgorah.png
+target/debug/netspecter=/usr/bin/netspecter
+target/debug/netspecter-agent=/usr/bin/netspecter-agent
+crates/gui/icons/app_icon.png=/usr/share/pixmaps/netspecter.png
 
-package/.desktop=/usr/share/applications/com.molivier.airgorah.desktop
-package/.policy=/usr/share/polkit-1/actions/org.freedesktop.policykit.airgorah.policy
+package/.desktop=/usr/share/applications/com.abdo.netspecter.desktop
+package/.policy=/usr/share/polkit-1/actions/org.freedesktop.policykit.netspecter.policy
 
-README.md=/usr/share/doc/airgorah/README.md
-LICENSE=/usr/share/doc/airgorah/LICENSE
+README.md=/usr/share/doc/netspecter/README.md
+LICENSE=/usr/share/doc/netspecter/LICENSE
