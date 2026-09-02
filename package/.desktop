@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=NetSpecter
-Comment=Advanced WiFi security auditing suite — PMKID, WPS, WEP, WPA3 detection, Evil Twin, hidden SSID discovery, smart wizard UI, HTML/PDF reports
+Comment=Advanced WiFi security auditing suite - PMKID, WPS, WEP, WPA3 detection, Evil Twin, hidden SSID discovery, smart wizard UI, HTML/PDF reports
 Exec=netspecter
 Icon=/usr/share/pixmaps/netspecter.png
 Categories=Network;Monitor;GTK;
