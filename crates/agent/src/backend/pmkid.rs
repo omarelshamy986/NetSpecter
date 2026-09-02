@@ -31,6 +31,10 @@
 //! found; we ship a precomputed placeholder so the operator can plug straight
 //! into their existing cracking pipeline.
 
+// Server dispatch reaches these through the attack scheduler; the bin-side
+// dead-code lint fires because the direct call sites live in another crate.
+#![allow(dead_code)]
+
 use crate::globals::*;
 use super::interface::get_iface;
 use chrono::Utc;

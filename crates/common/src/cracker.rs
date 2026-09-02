@@ -253,8 +253,8 @@ pub fn parse_hashcat_status(block: &str) -> HashcatStatus {
                 if let Some((att, tot)) = val.split_once('/') {
                     let a: u64 = att.parse().unwrap_or(0);
                     let t: u64 = tot.parse().unwrap_or(1);
-                    if t > 0 {
-                        st.progress_percent = ((a * 100) / t).min(100) as u32;
+                    if let Some(pct) = (a * 100).checked_div(t) {
+                        st.progress_percent = pct.min(100) as u32;
                     }
                 }
             }

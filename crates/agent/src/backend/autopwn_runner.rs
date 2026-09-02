@@ -58,7 +58,7 @@ fn pipeline_body(
     let mut cracked: Vec<(String, String, String)> = Vec::new();
 
     // ── Stage 1: Discover ─────────────────────────────────────────
-    let mut targets: Vec<ScoredTarget> = Vec::new();
+    let targets: Vec<ScoredTarget>;
     let mut recoveries: Vec<(String, String)> = Vec::new();
     {
         // Pull the live scan snapshot (the GUI's scan loop keeps it warm).

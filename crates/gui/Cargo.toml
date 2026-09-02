@@ -17,7 +17,6 @@ path = "src/main.rs"
 [dependencies]
 netspecter-common.workspace = true
 gtk4 = { version = "0.11", features = ["v4_6"] }
-netspecter-agent = { path = "../agent" }
 serde.workspace = true
 serde_json.workspace = true
 toml = "1"

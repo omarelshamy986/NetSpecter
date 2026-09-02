@@ -165,7 +165,7 @@ impl Scheduler {
             .filter(|(_, j)| j.status == AttackJobStatus::Queued)
             .map(|(i, j)| (i, j.kind.priority()))
             .collect();
-        candidates.sort_by(|a, b| a.1.cmp(&b.1));
+        candidates.sort_by_key(|a| a.1);
 
         for (idx, _) in candidates {
             let channel = self.jobs[idx].channel;

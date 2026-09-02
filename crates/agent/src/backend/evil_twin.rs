@@ -30,6 +30,10 @@
 //! the agent's process tree small and lets the operator replace any of the
 //! external tools without touching NetSpecter.
 
+// Server dispatch reaches these through the attack scheduler; the bin-side
+// dead-code lint fires because the direct call sites live in another crate.
+#![allow(dead_code)]
+
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;

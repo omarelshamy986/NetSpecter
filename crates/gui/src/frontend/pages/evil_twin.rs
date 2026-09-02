@@ -1,6 +1,6 @@
 //! Evil-Twin configuration page.
 //!
-//! Renders the [`EvilTwinConfig`] as a form: SSID, BSSID, channel, captive-
+//! Renders the Evil-Twin config (`netspecter_common::ipc::EvilTwinConfig`) as a form: SSID, BSSID, channel, captive-
 //! portal skin, NAT toggle. On launch, the page calls `evil_twin::launch()`
 //! and streams credential captures as they arrive.
 

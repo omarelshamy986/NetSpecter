@@ -1,5 +1,5 @@
 //! IPC event handlers — wires up the GTK4 buttons in each page to
-//! the [`IpcClient`].
+//! the IPC client (see `crate::ipc_client::IpcClient`).
 //!
 //! Each page exposes a `wire_handlers(&shared_state)` method that takes
 //! the shared app state and connects the buttons. The handlers run their

@@ -174,7 +174,7 @@ pub fn rank_targets(aps: &[AP]) -> Vec<ScoredTarget> {
         .iter()
         .map(|ap| score_ap(ap, Encryption::from_privacy_field(&ap.privacy).wps_eligible()))
         .collect();
-    targets.sort_by(|a, b| b.score.cmp(&a.score));
+    targets.sort_by_key(|a| std::cmp::Reverse(a.score));
     targets
 }
 
