@@ -151,7 +151,7 @@ fn beacon_flood_worker(
     let socket = super::raw_socket::open(&iface).ok()?;
     let deadline = Instant::now() + timeout;
     let interval = Duration::from_secs_f64(1.0 / f64::from(config.rate.clamp(1, 100)));
-    let mut beacon_buf = build_beacon_frame(&config);
+    let beacon_buf = build_beacon_frame(&config);
     let mut rx_buf = vec![0u8; 4096];
     let mut beacons_sent: u32 = 0;
 

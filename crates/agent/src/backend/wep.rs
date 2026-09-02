@@ -124,7 +124,7 @@ pub fn start_wep_collection(
     spawn_background(dump, &capture_root.join("airodump.log"))?;
 
     // Step 2: aireplay-ng with the requested strategy
-    let mut replay = match strategy {
+    let replay = match strategy {
         WepStrategy::Fragmentation => {
             let mut cmd = Command::new("aireplay-ng");
             cmd.args(["-5", "-b", &ap.bssid, iface]);
