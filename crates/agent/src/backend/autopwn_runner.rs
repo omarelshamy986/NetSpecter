@@ -78,16 +78,15 @@ fn pipeline_body(
             let candidates = backend::hidden::discover_hidden_essid(&ap.bssid, &ap.channel);
             if !candidates.is_empty() {
                 let best = &candidates[0];
-                    emit(
-                        tx,
-                        PipelineEvent::HiddenRecovery {
-                            bssid: ap.bssid.clone(),
-                            essid: best.essid.clone(),
-                            source: format!("{:?}", best.source),
-                        },
-                    );
-                    recoveries.push((ap.bssid.clone(), best.essid.clone()));
-                }
+                emit(
+                    tx,
+                    PipelineEvent::HiddenRecovery {
+                        bssid: ap.bssid.clone(),
+                        essid: best.essid.clone(),
+                        source: format!("{:?}", best.source),
+                    },
+                );
+                recoveries.push((ap.bssid.clone(), best.essid.clone()));
             }
         }
 
