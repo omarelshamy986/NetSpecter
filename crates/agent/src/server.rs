@@ -474,56 +474,13 @@ fn dispatch(request: Request) -> (Response, bool) {
             plans,
             output_dir,
         } => {
-            // Map wire → agent types for plans.
-            let agent_plans: Vec<backend::wizard::WizardPlan> = plans
-                .into_iter()
-                .map(|p| {
-                    let enc = netspecter_common::encryption::Encryption::from_label(&p.encryption_label);
-                    backend::wizard::WizardPlan {
-                        bssid: p.bssid,
-                        essid: p.essid,
-                        encryption: enc,
-                        steps: p
-                            .steps
-                            .into_iter()
-                            .map(|s| backend::wizard::WizardStep {
-                                order: s.order,
-                                title: s.title,
-                                description: s.description,
-                                kind: match s.kind {
-                                    netspecter_common::ipc::WizardStepKind::PassiveScan => {
-                                        backend::wizard::WizardStepKind::PassiveScan
-                                    }
-                                    netspecter_common::ipc::WizardStepKind::ActiveAttack => {
-                                        backend::wizard::WizardStepKind::ActiveAttack
-                                    }
-                                    netspecter_common::ipc::WizardStepKind::OfflineCrack => {
-                                        backend::wizard::WizardStepKind::OfflineCrack
-                                    }
-                                    netspecter_common::ipc::WizardStepKind::SocialEngineering => {
-                                        backend::wizard::WizardStepKind::SocialEngineering
-                                    }
-                                    netspecter_common::ipc::WizardStepKind::HiddenSsidRecovery => {
-                                        backend::wizard::WizardStepKind::HiddenSsidRecovery
-                                    }
-                                    netspecter_common::ipc::WizardStepKind::Report => {
-                                        backend::wizard::WizardStepKind::Report
-                                    }
-                                },
-                                estimated_secs: s.estimated_secs,
-                                requires_active_radio: s.requires_active_radio,
-                            })
-                            .collect(),
-                        rationale: p.rationale,
-                    }
-                })
-                .collect();
+            // build_report consumes the wire (ipc::WizardPlan) form directly.
             let report = backend::report::build_report(
                 "ENG-AUTO",
                 "",
                 "",
                 targets,
-                agent_plans,
+                plans,
             );
             let json_path = std::path::PathBuf::from(&output_dir).join("report.json");
             let html_path = std::path::PathBuf::from(&output_dir).join("report.html");
@@ -547,50 +504,6 @@ fn dispatch(request: Request) -> (Response, bool) {
             )
         }
 
-        Request::StartAutoPwn { config } => {
-            // Launch the pipeline; the receiver is parked in a global so
-            // PollAutoPwn can drain it.
-            let rx = backend::autopwn_runner::run_auto_pwn(config);
-            let mut store = get_autopwn_events().lock().unwrap();
-            *store = Some(rx);
-            // Drop any stale events from a previous run.
-            (Response::AutoPwnStarted, false)
-        }
-
-        Request::PollAutoPwn => {
-            let mut store = get_autopwn_events().lock().unwrap();
-            match store.as_mut() {
-                Some(rx) => {
-                    let mut events = Vec::new();
-                    let mut result = None;
-                    // Drain everything currently queued (non-blocking).
-                    while let Ok(msg) = rx.try_recv() {
-                        match msg {
-                            backend::autopwn_runner::PipelineMessage::Event(e) => {
-                                events.push(e);
-                            }
-                            backend::autopwn_runner::PipelineMessage::Done(r) => {
-                                result = Some(r);
-                            }
-                        }
-                    }
-                    if result.is_some() {
-                        // Pipeline finished — clear the store so the next
-                        // run gets a fresh channel.
-                        *store = None;
-                    }
-                    (Response::AutoPwnEvents { events, result }, false)
-                }
-                None => (
-                    Response::AutoPwnEvents {
-                        events: Vec::new(),
-                        result: None,
-                    },
-                    false,
-                ),
-            }
-        }
-
-        Request::Shutdown => (Response::Ok, true),
+Request::Shutdown => (Response::Ok, true),
     }
 }

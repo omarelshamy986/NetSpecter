@@ -75,8 +75,9 @@ fn pipeline_body(
             .filter(|ap| ap.hidden || ap.essid.is_empty() || ap.essid.starts_with("<hidden"))
             .collect();
         for ap in hidden.iter() {
-            if let Some(candidates) = backend::hidden::discover_hidden_essid(&ap.bssid, &ap.channel) {
-                if let Some(best) = candidates.first() {
+            let candidates = backend::hidden::discover_hidden_essid(&ap.bssid, &ap.channel);
+            if !candidates.is_empty() {
+                let best = &candidates[0];
                     emit(
                         tx,
                         PipelineEvent::HiddenRecovery {
