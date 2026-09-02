@@ -34,6 +34,11 @@ pub struct HiddenState {
     pub ap_snapshot: Vec<netspecter_common::types::AP>,
     pub result_view: Option<ListBox>,
     pub status_label: Option<Label>,
+    /// Wired buttons captured at construction time so `wire_handlers`
+    /// can connect them without walking the widget tree.
+    pub run_btn_hint: Option<Button>,
+    pub stop_btn_hint: Option<Button>,
+    pub copy_btn_hint: Option<Button>,
 }
 
 impl HiddenNetworksPage {
@@ -133,13 +138,10 @@ impl HiddenNetworksPage {
             ap_snapshot: vec![],
             result_view: Some(result_view),
             status_label: Some(status_label),
+            run_btn_hint: Some(run_btn),
+            stop_btn_hint: Some(stop_btn),
+            copy_btn_hint: Some(copy_btn),
         }));
-
-        let state_for_run = state.clone();
-        run_btn.connect_clicked(move |_btn| {
-            let s = state_for_run.borrow();
-            let _ = s; // placeholder for the IPC integration
-        });
 
         Self { root, state }
     }
@@ -182,39 +184,36 @@ impl HiddenNetworksPage {
 
     /// Wire the Run button + stop button to the IPC client.
     pub fn wire_handlers(&self, state: SharedState) {
-        let root = &self.root;
-        // Walk children to find the Run / Stop buttons. The simpler way is
-        // to capture them in a setter when we construct the page; for
-        // brevity we just clone the references by position.
-        let mut run_btn: Option<Button> = None;
-        let mut stop_btn: Option<Button> = None;
-        let mut copy_btn: Option<Button> = None;
-        let mut status_label: Option<Label> = None;
-        let mut result_view: Option<ListBox> = None;
-        Self::find_buttons(root, &mut run_btn, &mut stop_btn, &mut copy_btn, &mut status_label, &mut result_view);
-
         let state_for_run = state.clone();
-        let result_view_for_idle = result_view.clone();
-        let status_label_for_idle = status_label.clone();
-
-        if let Some(run_btn) = run_btn {
+        if let Some(ref run_btn) = self.state.borrow().run_btn_hint {
             run_btn.connect_clicked(move |_btn| {
-                let page = state_for_run.borrow().hidden_networks_page.clone();
-                let ap = page.selected_ap();
-                let Some(ap) = ap else {
-                    if let Some(lbl) = &status_label_for_idle {
+                let s = state_for_run.borrow();
+                let Some(ap) = s.hidden_networks_page.selected_ap() else {
+                    if let Some(ref lbl) = s
+                        .hidden_networks_page
+                        .state
+                        .borrow()
+                        .status_label
+                    {
                         lbl.set_text("Pick a target BSSID first.");
                     }
                     return;
                 };
-                let ipc = state_for_run.borrow().ipc.clone();
+                let ipc = s.ipc.clone();
                 let bssid = ap.bssid.clone();
                 let channel: u8 = ap.channel.parse().unwrap_or(6);
-                let result_view_clone = result_view_for_idle.clone();
-                let status_label_clone = status_label_for_idle.clone();
-                if let Some(lbl) = &status_label_clone {
+                if let Some(ref lbl) = s
+                    .hidden_networks_page
+                    .state
+                    .borrow()
+                    .status_label
+                {
                     lbl.set_text("Running discovery…");
                 }
+                drop(s);
+
+                // Worker: plain data back over mpsc; main-thread pump renders.
+                let (tx, rx) = std::sync::mpsc::channel::<Vec<netspecter_common::ipc::HiddenSsidCandidate>>();
                 std::thread::spawn(move || {
                     let mut all = Vec::new();
                     // Probe harvest
@@ -225,45 +224,62 @@ impl HiddenNetworksPage {
                     if let Ok(mut v) = ipc.beacon_flood_hidden(&bssid, channel, 30) {
                         all.append(&mut v);
                     }
-                    glib::idle_add_once(move || {
-                        if let Some(lbl) = &status_label_clone {
-                            lbl.set_text(&format!("Recovered {} candidates.", all.len()));
-                        }
-                        if let Some(view) = result_view_clone {
-                            while let Some(child) = view.first_child() {
-                                view.remove(&child);
+                    let _ = tx.send(all);
+                });
+
+                let state_pump = state_for_run.clone();
+                glib::timeout_add_local(std::time::Duration::from_millis(200), move || {
+                    match rx.try_recv() {
+                        Ok(all) => {
+                            let s = state_pump.borrow();
+                            let page = &s.hidden_networks_page;
+                            if let Some(ref lbl) = page.state.borrow().status_label {
+                                lbl.set_text(&format!("Recovered {} candidates.", all.len()));
                             }
-                            for c in &all {
-                                let row = ReportsPage::build_report_row(
-                                    &c.essid,
-                                    &format!(
-                                        "{:?} ({} observations)",
-                                        c.source, c.observations
-                                    ),
-                                );
-                                view.append(&row);
+                            if let Some(ref view) = page.state.borrow().result_view {
+                                while let Some(child) = view.first_child() {
+                                    view.remove(&child);
+                                }
+                                for c in &all {
+                                    let row = ReportsPage::build_report_row(
+                                        &c.essid,
+                                        &format!(
+                                            "{:?} ({} observations)",
+                                            c.source, c.observations
+                                        ),
+                                    );
+                                    view.append(&row);
+                                }
                             }
+                            glib::ControlFlow::Break
                         }
-                    });
+                        Err(std::sync::mpsc::TryRecvError::Empty) => glib::ControlFlow::Continue,
+                        Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                            glib::ControlFlow::Break
+                        }
+                    }
                 });
             });
         }
 
-        if let Some(stop_btn) = stop_btn {
+        if let Some(ref stop_btn) = self.state.borrow().stop_btn_hint {
             // No long-running state to stop in v1.4.0; the IPC call returns
             // after the agent-side timeout. Wire the button to surface a
             // hint.
-            let status_label_clone = status_label.clone();
+            let state_for_stop = state.clone();
             stop_btn.connect_clicked(move |_btn| {
-                if let Some(lbl) = &status_label_clone {
+                let s = state_for_stop.borrow();
+                if let Some(ref lbl) = s.hidden_networks_page.state.borrow().status_label {
                     lbl.set_text("Stop is a no-op in v1.4.0 — IPC calls return on timeout.");
                 }
             });
         }
 
-        if let Some(copy_btn) = copy_btn {
+        if let Some(ref copy_btn) = self.state.borrow().copy_btn_hint {
+            let state_for_copy = state.clone();
             copy_btn.connect_clicked(move |_btn| {
-                if let Some(view) = &result_view {
+                let s = state_for_copy.borrow();
+                if let Some(ref view) = s.hidden_networks_page.state.borrow().result_view {
                     let mut text = String::new();
                     let mut child = view.first_child();
                     while let Some(c) = child {
@@ -286,23 +302,6 @@ impl HiddenNetworksPage {
                 }
             });
         }
-    }
-
-    /// Walk the widget tree to find the named buttons / labels.
-    /// GTK4 doesn't expose IDs directly, so we walk by structure.
-    fn find_buttons(
-        widget: &impl IsA<Widget>,
-        run_btn: &mut Option<Button>,
-        stop_btn: &mut Option<Button>,
-        copy_btn: &mut Option<Button>,
-        status_label: &mut Option<Label>,
-        result_view: &mut Option<ListBox>,
-    ) {
-        let w = widget.upcast_ref::<Widget>();
-        // Best-effort: do nothing here — wire_handlers uses the captured
-        // references from the page's own fields instead. This stub
-        // exists so the function signature is stable.
-        let _ = (w, run_btn, stop_btn, copy_btn, status_label, result_view);
     }
 }
 

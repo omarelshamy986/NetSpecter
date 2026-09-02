@@ -247,9 +247,12 @@ impl AutoPwnPage {
 
     /// Wire the Start/Stop buttons to the IPC client.
     ///
-    /// Start dispatches StartAutoPwn and flips to polling mode; a
-    /// `glib::timeout_add_local` timer polls PollAutoPwn every second
-    /// and renders each event batch until the result arrives.
+    /// Start dispatches StartAutoPwn on a worker thread; the worker pumps
+    /// the event stream and sends each batch back as a plain-`Send`
+    /// message over an `std::sync::mpsc` channel. A
+    /// `glib::timeout_add_local` pump on the main thread renders the
+    /// events and applies the final result — widgets never leave the
+    /// main thread.
     pub fn wire_handlers(&self, state: SharedState) {
         let state_inner = self.state.clone();
         let state_for_start = state.clone();
@@ -267,10 +270,57 @@ impl AutoPwnPage {
                 drop(s);
 
                 let ipc = state_for_start.borrow().ipc.clone();
-                let state_for_poll = state_for_start.clone();
+
+                // Channel + main-thread pump FIRST (we're on the main
+                // thread inside the clicked handler) — then the worker.
+                let (tx, rx) = std::sync::mpsc::channel::<AutoPwnMsg>();
+                let state_pump = state_for_start.clone();
+                glib::timeout_add_local(
+                    std::time::Duration::from_millis(200),
+                    move || {
+                        let mut final_done = false;
+                        loop {
+                            match rx.try_recv() {
+                                Ok(AutoPwnMsg::Batch { events, result }) => {
+                                    let s = state_pump.borrow();
+                                    let page = &s.autopwn_page;
+                                    for ev in &events {
+                                        render_event(page, ev);
+                                    }
+                                    if let Some(res) = result {
+                                        let inner = page.state.borrow();
+                                        if let (Some(ref start), Some(ref stop), Some(ref status)) =
+                                            (inner.start_btn, inner.stop_btn, inner.status_label)
+                                        {
+                                            start.set_sensitive(true);
+                                            stop.set_sensitive(false);
+                                            status.set_text(&format!(
+                                                "Done — {} cracked of {} attempted.",
+                                                res.cracked.len(),
+                                                res.targets.len()
+                                            ));
+                                        }
+                                        final_done = true;
+                                    }
+                                }
+                                Err(std::sync::mpsc::TryRecvError::Empty) => break,
+                                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                                    final_done = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if final_done {
+                            glib::ControlFlow::Break
+                        } else {
+                            glib::ControlFlow::Continue
+                        }
+                    },
+                );
+
                 std::thread::spawn(move || {
                     // Launch, then pump the event stream back to the GUI
-                    // through the shared page state.
+                    // through the channel — plain data only.
                     if ipc
                         .call(netspecter_common::ipc::Request::StartAutoPwn {
                             config: netspecter_common::autopwn::AutoPwnConfig::default(),
@@ -282,31 +332,9 @@ impl AutoPwnPage {
                     loop {
                         match ipc.poll_auto_pwn() {
                             Ok((events, result)) => {
-                                let state_clone = state_for_poll.clone();
-                                glib::idle_add_once(move || {
-                                    let page = &state_clone.borrow().autopwn_page;
-                                    for ev in &events {
-                                        render_event(page, ev);
-                                    }
-                                });
-                                if let Some(res) = result {
-                                    let state_done = state_for_poll.clone();
-                                    glib::idle_add_once(move || {
-                                        let s = state_done.borrow();
-                                        if let (Some(ref start), Some(ref stop), Some(ref status)) =
-                                            (s.autopwn_page.state.borrow().start_btn,
-                                             s.autopwn_page.state.borrow().stop_btn,
-                                             s.autopwn_page.state.borrow().status_label)
-                                        {
-                                            start.set_sensitive(true);
-                                            stop.set_sensitive(false);
-                                            status.set_text(&format!(
-                                                "Done — {} cracked of {} attempted.",
-                                                res.cracked.len(),
-                                                res.targets.len()
-                                            ));
-                                        }
-                                    });
+                                let done = result.is_some();
+                                let _ = tx.send(AutoPwnMsg::Batch { events, result });
+                                if done {
                                     return;
                                 }
                             }
@@ -335,6 +363,14 @@ impl AutoPwnPage {
     }
 }
 
+/// Plain-`Send` batches the autopwn worker forwards to the GUI pump.
+enum AutoPwnMsg {
+    Batch {
+        events: Vec<netspecter_common::autopwn::PipelineEvent>,
+        result: Option<netspecter_common::autopwn::AutoPwnResult>,
+    },
+}
+
 /// Render one pipeline event onto the page.
 fn render_event(page: &AutoPwnPage, ev: &netspecter_common::autopwn::PipelineEvent) {
     use netspecter_common::autopwn::PipelineEvent as PE;
@@ -356,9 +392,9 @@ fn render_event(page: &AutoPwnPage, ev: &netspecter_common::autopwn::PipelineEve
         PE::AttackStarted { essid, kind, .. } => {
             page.set_status(&format!("Running {kind} on {essid}…"));
         }
-        PE::AttackFinished { essid, status, result, .. } => {
+        PE::AttackFinished { job_id, status, result, .. } => {
             let note = result.clone().unwrap_or_default();
-            page.set_status(&format!("{essid}: {status} {note}"));
+            page.set_status(&format!("job #{job_id}: {status} {note}"));
         }
         PE::Cracking { hashfile, wordlist } => {
             page.set_status(&format!(

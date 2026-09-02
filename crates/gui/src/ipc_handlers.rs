@@ -4,15 +4,16 @@
 //! Each page exposes a `wire_handlers(&shared_state)` method that takes
 //! the shared app state and connects the buttons. The handlers run their
 //! IPC calls on a worker thread (because GTK4 runs everything on the main
-//! thread) and use [`glib::idle_add`] to bounce results back to the main
-//! loop for UI updates.
+//! thread) and bounce results back to the main loop as plain-`Send`
+//! messages over an `std::sync::mpsc` channel; a `glib::timeout_add_local`
+//! pump on the main thread drains the queue and applies the UI updates.
 //!
-//! ## Why worker threads?
+//! ## Why worker threads + a channel pump?
 //!
 //! IPC calls block on the agent's response; running them on the main GTK4
-//! thread would freeze the UI for the duration. The `std::thread::spawn`
-//! + `glib::idle_add` pattern keeps the UI responsive while the agent
-//! works, and is the canonical Rust+GTK4 approach.
+//! thread would freeze the UI for the duration. GTK4 widgets are not
+//! `Send`, so the worker thread must never capture them — it sends
+//! `UiMsg` values instead, and only the main-thread pump touches widgets.
 
 use gtk4::glib;
 use gtk4::prelude::*;
@@ -22,11 +23,87 @@ use crate::frontend::pages::{
     AuditLogPage, EvilTwinPage, PmkidPage, ReportsPage, SmartWizardPage,
 };
 
+/// Plain-`Send` messages a worker thread sends back to the GUI pump.
+pub enum UiMsg {
+    /// Replace the wizard plan checklist.
+    WizardPlan(netspecter_common::ipc::WizardPlan),
+    /// Set the PMKID result label.
+    PmkidResult(String),
+    /// Log a failure at info level (rendered into the status label by
+    /// the pump when applicable).
+    Failure(String),
+    /// Evil-twin launch succeeded — note in the status line.
+    EvilTwinLaunched { ssid: String, iface: String },
+    /// Evil-twin launch failed — note in the status line.
+    EvilTwinFailed(String),
+    /// Report generation finished — rows to append to the Reports list.
+    ReportReady { rows: Vec<(String, String)> },
+}
+
+/// Spawn `f` on a worker thread, forwarding its `UiMsg` output to a
+/// main-thread pump that owns no widgets.
+pub fn spawn_with_pump<F>(state: &SharedState, f: F)
+where
+    F: FnOnce(std::sync::mpsc::Sender<UiMsg>) + Send + 'static,
+{
+    let (tx, rx) = std::sync::mpsc::channel::<UiMsg>();
+    std::thread::spawn(move || f(tx));
+
+    // Main-thread pump: drains whatever has arrived every 150ms.
+    let state = state.clone();
+    glib::timeout_add_local(std::time::Duration::from_millis(150), move || {
+        loop {
+            match rx.try_recv() {
+                Ok(msg) => apply_msg(&state, msg),
+                Err(std::sync::mpsc::TryRecvError::Empty) => break,
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    // Worker done and queue drained — stop the pump.
+                    return glib::ControlFlow::Break;
+                }
+            }
+        }
+        glib::ControlFlow::Continue
+    });
+}
+
+/// Apply one worker message to the UI. Runs on the main thread only.
+fn apply_msg(state: &SharedState, msg: UiMsg) {
+    let s = state.borrow();
+    match msg {
+        UiMsg::WizardPlan(plan) => {
+            s.wizard_page.render_plan(&plan);
+        }
+        UiMsg::PmkidResult(text) => {
+            s.pmkid_page.result_label.set_text(&text);
+        }
+        UiMsg::Failure(text) => {
+            log::warn!("{text}");
+            s.status_label.set_text(&text);
+        }
+        UiMsg::EvilTwinLaunched { ssid, iface } => {
+            s.evil_twin_page.stop_btn.set_sensitive(true);
+            s.status_label
+                .set_text(&format!("Evil twin launched: {ssid} on {iface}"));
+        }
+        UiMsg::EvilTwinFailed(text) => {
+            s.status_label.set_text(&text);
+        }
+        UiMsg::ReportReady { rows } => {
+            for (title, path) in rows {
+                let row = ReportsPage::build_report_row(&title, &path);
+                s.reports_page.list.append(&row);
+            }
+        }
+    }
+}
+
 /// Connect every page's UI handlers to the shared IPC client.
 ///
 /// Idempotent — safe to call once per page.
 pub fn wire_all(state: SharedState) {
-    let mut s = state.borrow_mut();
+    // All borrows here are immutable (RefCell allows them to coexist);
+    // no `wire_handlers` takes a shared mutable borrow during wiring.
+    let s = state.borrow();
     s.autopwn_page.wire_handlers(state.clone());
     s.wizard_page.wire_handlers(state.clone());
     s.pmkid_page.wire_handlers(state.clone());
@@ -43,30 +120,27 @@ pub fn wire_all(state: SharedState) {
 impl SmartWizardPage {
     pub fn wire_handlers(&self, state: SharedState) {
         // The "Generate plan" path: dispatch WizardPlanFor and render the
-        // resulting plan into the page's checklist.
+        // resulting plan into the page's checklist. The worker sends the
+        // plan back as a `UiMsg`; the main-thread pump renders it.
         let state_for_target = state.clone();
-        if let Some(dropdown) = &self.state.borrow().target_dropdown {
+        if let Some(dropdown) = self.target_dropdown() {
             dropdown.connect_selected_notify(move |dd| {
                 let s = state_for_target.borrow();
                 let idx = dd.selected();
-                let aps = &s.ap_snapshot;
-                if idx < aps.len() as u32 {
+                let aps = s.wizard_page.ap_snapshot();
+                if (idx as usize) < aps.len() {
                     let ap = aps[idx as usize].clone();
                     let ipc = s.ipc.clone();
-                    let state2 = state_for_target.clone();
-                    std::thread::spawn(move || {
+                    drop(s);
+                    spawn_with_pump(&state_for_target, move |tx| {
                         match ipc.wizard_plan_for(ap) {
                             Ok(plan) => {
-                                let page = state2.borrow().wizard_page.clone();
-                                let plan_for_idle = plan;
-                                glib::idle_add_once(move || {
-                                    page.render_plan(&plan_for_idle);
-                                });
+                                let _ = tx.send(UiMsg::WizardPlan(plan));
                             }
                             Err(e) => {
-                                glib::idle_add_once(move || {
-                                    log::warn!("wizard_plan_for failed: {e}");
-                                });
+                                let _ = tx.send(UiMsg::Failure(format!(
+                                    "wizard_plan_for failed: {e}"
+                                )));
                             }
                         }
                     });
@@ -84,41 +158,30 @@ impl PmkidPage {
     pub fn wire_handlers(&self, state: SharedState) {
         // The "Capture PMKID" button dispatches HarvestPmkid on a worker
         // thread and updates the result label when the agent responds.
-        let result_label = self.result_label.clone();
         let capture_btn = self.capture_btn.clone();
         let state_for_btn = state.clone();
 
         capture_btn.connect_clicked(move |_btn| {
             let s = state_for_btn.borrow();
-            let target = s.selected_ap();
-            let Some(ap) = target else {
-                glib::idle_add_once(|| {});
+            let Some(ap) = s.selected_ap() else {
                 return;
             };
             let ipc = s.ipc.clone();
             let bssid = ap.bssid.clone();
             let essid = ap.essid.clone();
-            let result_label_clone = result_label.clone();
-            std::thread::spawn(move || {
+            drop(s);
+
+            spawn_with_pump(&state_for_btn, move |tx| {
                 match ipc.harvest_pmkid(&bssid, &essid, 60) {
                     Ok(cap) => {
                         let path = cap.capture_path.unwrap_or_default();
-                        let captured_at = cap.captured_at;
-                        let pmkid = cap.pmkid_hex;
-                        let bssid_s = cap.bssid;
-                        let essid_s = cap.essid;
-                        glib::idle_add_once(move || {
-                            result_label_clone.set_text(&format!(
-                                "Captured!\nBSSID: {}\nESSID: {}\nPMKID: {}\nAt: {}\nCapture: {}",
-                                bssid_s, essid_s, pmkid, captured_at, path
-                            ));
-                        });
+                        let _ = tx.send(UiMsg::PmkidResult(format!(
+                            "Captured!\nBSSID: {}\nESSID: {}\nPMKID: {}\nAt: {}\nCapture: {}",
+                            cap.bssid, cap.essid, cap.pmkid_hex, cap.captured_at, path
+                        )));
                     }
                     Err(e) => {
-                        let msg = format!("harvest failed: {e}");
-                        glib::idle_add_once(move || {
-                            result_label_clone.set_text(&msg);
-                        });
+                        let _ = tx.send(UiMsg::PmkidResult(format!("harvest failed: {e}")));
                     }
                 }
             });
@@ -127,7 +190,6 @@ impl PmkidPage {
         // Verify: dispatch VerifyPskAgainstPmkid with the typed
         // candidate from the entry field, then display "match"/"no match".
         let verify_btn = self.verify_btn.clone();
-        let result_label_for_verify = self.result_label.clone();
         let entry = self.verify_entry.clone();
         let state_for_verify = state.clone();
 
@@ -141,30 +203,27 @@ impl PmkidPage {
             let ipc = s.ipc.clone();
             let bssid = ap.bssid.clone();
             let essid = ap.essid.clone();
+            drop(s);
             let sta = "02:00:00:00:01:00".to_string();
             // The captured PMKID should come from the latest harvest. For
             // now we re-run the harvest quickly and use the result.
-            let result_label_clone = result_label_for_verify.clone();
-            std::thread::spawn(move || {
+            spawn_with_pump(&state_for_verify, move |tx| {
                 let cap = match ipc.harvest_pmkid(&bssid, &essid, 60) {
                     Ok(c) => c,
                     Err(_) => return,
                 };
                 let pmkid_hex = cap.pmkid_hex.clone();
-                let ok = ipc.verify_psk(&candidate, &essid, &bssid, &sta, &pmkid_hex).unwrap_or(false);
+                let ok = ipc
+                    .verify_psk(&candidate, &essid, &bssid, &sta, &pmkid_hex)
+                    .unwrap_or(false);
                 let label_text = if ok {
-                    format!("✓ Match: '{}' is the network PSK", candidate)
+                    format!("✓ Match: '{candidate}' is the network PSK")
                 } else {
-                    format!("✗ No match for '{}'", candidate)
+                    format!("✗ No match for '{candidate}'")
                 };
-                let pmkid_for_label = pmkid_hex;
-                let bssid_for_label = bssid.clone();
-                let essid_for_label = essid.clone();
-                glib::idle_add_once(move || {
-                    result_label_clone.set_text(&format!(
-                        "{label_text}\nBSSID: {bssid_for_label}\nESSID: {essid_for_label}\nPMKID: {pmkid_for_label}"
-                    ));
-                });
+                let _ = tx.send(UiMsg::PmkidResult(format!(
+                    "{label_text}\nBSSID: {bssid}\nESSID: {essid}\nPMKID: {pmkid_hex}"
+                )));
             });
         });
 
@@ -198,8 +257,6 @@ impl EvilTwinPage {
     pub fn wire_handlers(&self, state: SharedState) {
         // Launch the Evil Twin session.
         let launch_btn = self.launch_btn.clone();
-        let stop_btn = self.stop_btn.clone();
-        let creds_view = self.creds_view.clone();
         let iface_entry = self.iface_entry.clone();
         let ssid_entry = self.ssid_entry.clone();
         let bssid_entry = self.bssid_entry.clone();
@@ -220,7 +277,7 @@ impl EvilTwinPage {
 
             let config = netspecter_common::ipc::EvilTwinConfig {
                 iface: iface.clone(),
-                ssid,
+                ssid: ssid.clone(),
                 bssid,
                 channel,
                 portal_template: "templates/portal-router.html".to_string(),
@@ -228,40 +285,34 @@ impl EvilTwinPage {
             };
 
             let ipc = state_for_launch.borrow().ipc.clone();
-            let stop_btn_clone = stop_btn.clone();
-            std::thread::spawn(move || match ipc.launch_evil_twin(config) {
-                Ok(session) => {
-                    glib::idle_add_once(move || {
-                        stop_btn_clone.set_sensitive(true);
-                        log::info!(
-                            "evil twin launched: {} on {}",
-                            session.config.ssid,
-                            session.config.iface,
-                        );
-                    });
-                }
-                Err(e) => {
-                    let msg = format!("launch failed: {e}");
-                    glib::idle_add_once(move || {
-                        log::warn!("{msg}");
-                    });
+            spawn_with_pump(&state_for_launch, move |tx| {
+                match ipc.launch_evil_twin(config) {
+                    Ok(session) => {
+                        let _ = tx.send(UiMsg::EvilTwinLaunched {
+                            ssid: session.config.ssid,
+                            iface: session.config.iface,
+                        });
+                    }
+                    Err(e) => {
+                        let _ = tx.send(UiMsg::EvilTwinFailed(format!(
+                            "launch failed: {e}"
+                        )));
+                    }
                 }
             });
         });
 
         // Stop the Evil Twin session.
         let state_for_stop = state.clone();
-        stop_btn.connect_clicked(move |_btn| {
-            let iface = iface_entry.text().to_string();
-            let ipc = state_for_stop.borrow().ipc.clone();
-            std::thread::spawn(move || {
-                let _ = ipc.stop_evil_twin(&iface);
+        let iface_entry_for_stop = self.iface_entry.clone();
+        self.stop_btn
+            .connect_clicked(move |_btn| {
+                let iface = iface_entry_for_stop.text().to_string();
+                let ipc = state_for_stop.borrow().ipc.clone();
+                std::thread::spawn(move || {
+                    let _ = ipc.stop_evil_twin(&iface);
+                });
             });
-        });
-
-        // Suppress the unused warning for creds_view; the page polls
-        // credentials itself via the IPC connection.
-        let _ = creds_view;
     }
 }
 
@@ -272,7 +323,6 @@ impl EvilTwinPage {
 impl ReportsPage {
     pub fn wire_handlers(&self, state: SharedState) {
         let generate_btn = self.generate_btn.clone();
-        let list = self.list.clone();
         let state_for_gen = state.clone();
 
         generate_btn.connect_clicked(move |_btn| {
@@ -300,30 +350,27 @@ impl ReportsPage {
                 rationale: "demo plan".into(),
             };
 
-            let output_dir = format!("/tmp/netspecter-reports/{}", chrono::Utc::now().timestamp());
-            let list_clone = list.clone();
-            std::thread::spawn(move || {
+            let output_dir = format!(
+                "/tmp/netspecter-reports/{}",
+                chrono::Utc::now().timestamp()
+            );
+            spawn_with_pump(&state_for_gen, move |tx| {
                 let _ = std::fs::create_dir_all(&output_dir);
                 match ipc.generate_report(vec![target], vec![plan], &output_dir) {
                     Ok(paths) => {
-                        glib::idle_add_once(move || {
-                            let row1 = ReportsPage::build_report_row(
-                                "Demo engagement",
-                                &paths.json,
-                            );
-                            list_clone.append(&row1);
-
-                            if let Some(html) = &paths.html {
-                                let row2 = ReportsPage::build_report_row(
-                                    "Demo (HTML)",
-                                    html,
-                                );
-                                list_clone.append(&row2);
-                            }
-                        });
+                        let mut rows = vec![(
+                            "Demo engagement".to_string(),
+                            paths.json.clone(),
+                        )];
+                        if let Some(html) = &paths.html {
+                            rows.push(("Demo (HTML)".to_string(), html.clone()));
+                        }
+                        let _ = tx.send(UiMsg::ReportReady { rows });
                     }
                     Err(e) => {
-                        log::warn!("generate_report failed: {e}");
+                        let _ = tx.send(UiMsg::Failure(format!(
+                            "generate_report failed: {e}"
+                        )));
                     }
                 }
             });

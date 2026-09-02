@@ -96,7 +96,7 @@ impl IpcClient {
     pub fn disconnect(&self) {
         let mut guard = self.stream.lock().expect("IpcClient mutex poisoned");
         if let Some(stream) = guard.take() {
-            let _ = stream.shutdown(std::io::Shutdown::Both);
+            let _ = stream.shutdown(std::net::Shutdown::Both);
         }
     }
 
@@ -280,9 +280,7 @@ impl IpcClient {
             plans,
             output_dir: output_dir.into(),
         })? {
-            Response::ReportPaths { html, json, pdf } => Ok(
-                netspecter_common::ipc::ReportPaths { html, json, pdf },
-            ),
+            Response::ReportPaths(p) => Ok(p),
             Response::Error { message } => Err(IpcError::AgentError(message)),
             _ => Err(IpcError::UnexpectedResponse),
         }

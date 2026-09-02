@@ -15,6 +15,9 @@ use gtk4::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use netspecter_common::ipc::WizardPlan;
+use netspecter_common::ipc::WizardStep;
+use netspecter_common::ipc::WizardStepKind;
 use netspecter_common::types::AP;
 
 /// One row in the wizard checklist.
@@ -175,10 +178,16 @@ impl SmartWizardPage {
         self.state.borrow().ap_snapshot.clone()
     }
 
+    /// The target dropdown widget, if bound. Exposed so handlers in other
+    /// modules can connect to it without touching the private state.
+    pub fn target_dropdown(&self) -> Option<DropDown> {
+        self.state.borrow().target_dropdown.clone()
+    }
+
     /// Render the plan for the currently-selected target.
-    pub fn render_plan(&self, plan: &netspecter_agent::backend::wizard::WizardPlan) {
+    pub fn render_plan(&self, plan: &WizardPlan) {
         let mut state = self.state.borrow_mut();
-        state.encryption_label.set_text(&format!("Encryption: {}", plan.encryption.label()));
+        state.encryption_label.set_text(&format!("Encryption: {}", plan.encryption_label));
         state.rationale_label.set_text(&plan.rationale);
 
         // Clear existing rows.
@@ -195,18 +204,18 @@ impl SmartWizardPage {
     }
 }
 
-fn build_step_row(step: &netspecter_agent::backend::wizard::WizardStep) -> WizardRow {
+fn build_step_row(step: &WizardStep) -> WizardRow {
     let row_box = Box::new(Orientation::Horizontal, 8);
     row_box.set_margin_top(4);
     row_box.set_margin_bottom(4);
 
     let icon_name = match step.kind {
-        netspecter_agent::backend::wizard::WizardStepKind::PassiveScan => "find-location-symbolic",
-        netspecter_agent::backend::wizard::WizardStepKind::ActiveAttack => "system-run-symbolic",
-        netspecter_agent::backend::wizard::WizardStepKind::OfflineCrack => "utilities-terminal-symbolic",
-        netspecter_agent::backend::wizard::WizardStepKind::SocialEngineering => "preferences-system-network-symbolic",
-        netspecter_agent::backend::wizard::WizardStepKind::HiddenSsidRecovery => "view-reveal-symbolic",
-        netspecter_agent::backend::wizard::WizardStepKind::Report => "edit-paste-symbolic",
+        WizardStepKind::PassiveScan => "find-location-symbolic",
+        WizardStepKind::ActiveAttack => "system-run-symbolic",
+        WizardStepKind::OfflineCrack => "utilities-terminal-symbolic",
+        WizardStepKind::SocialEngineering => "preferences-system-network-symbolic",
+        WizardStepKind::HiddenSsidRecovery => "view-reveal-symbolic",
+        WizardStepKind::Report => "edit-paste-symbolic",
     };
     let icon = Image::from_icon_name(icon_name);
     row_box.append(&icon);

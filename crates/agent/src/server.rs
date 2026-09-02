@@ -495,11 +495,11 @@ fn dispatch(request: Request) -> (Response, bool) {
             let pdf_path = std::path::PathBuf::from(&output_dir).join("report.pdf");
             let pdf_ok = backend::report::render_pdf(&html_path, &pdf_path).ok();
             (
-                Response::ReportPaths {
+                Response::ReportPaths(netspecter_common::ipc::ReportPaths {
                     html: Some(html_path.to_string_lossy().into_owned()),
                     json: json_path.to_string_lossy().into_owned(),
                     pdf: pdf_ok.map(|()| pdf_path.to_string_lossy().into_owned()),
-                },
+                }),
                 false,
             )
         }

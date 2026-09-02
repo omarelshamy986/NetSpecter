@@ -163,6 +163,15 @@ pub enum Request {
     },
 }
 
+/// Paths of a generated report — the payload of
+/// [`Response::ReportPaths`].
+#[derive(Clone, Debug, Serialize, serde::Deserialize)]
+pub struct ReportPaths {
+    pub html: Option<String>,
+    pub json: String,
+    pub pdf: Option<String>,
+}
+
 /// A reply from the agent to a [`Request`].
 #[derive(Debug, Serialize, serde::Deserialize)]
 pub enum Response {
@@ -209,11 +218,7 @@ pub enum Response {
 
     /// Reply to [`Request::GenerateReport`] — the paths of the rendered
     /// files (HTML, JSON, optional PDF).
-    ReportPaths {
-        html: Option<String>,
-        json: String,
-        pdf: Option<String>,
-    },
+    ReportPaths(ReportPaths),
 
     /// Reply to [`Request::StartAutoPwn`] — the pipeline has launched;
     /// poll with PollAutoPwn for events and the final result.

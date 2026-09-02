@@ -36,7 +36,7 @@ impl AppState {
     /// The AP currently selected in the wizard's target dropdown.
     /// Returns `None` if no dropdown is bound or nothing is selected.
     pub fn selected_ap(&self) -> Option<netspecter_common::types::AP> {
-        self.wizard_page.state.borrow().selected_ap()
+        self.wizard_page.selected_ap()
     }
 }
 
@@ -124,11 +124,12 @@ pub fn build_shell(app: &Application, ipc: IpcClient) -> SharedState {
     // Wire the reconnect button.
     let state_for_btn = state.clone();
     reconnect_btn.connect_clicked(move |btn| {
-        let mut s = state_for_btn.borrow_mut();
+        let s = state_for_btn.borrow_mut();
         if s.ipc.is_connected() {
             s.ipc.disconnect();
         }
-        match s.ipc.connect() {
+        let outcome = s.ipc.connect();
+        match outcome {
             Ok(()) => {
                 s.status_label.set_text("● Agent connected");
                 btn.set_icon_name("view-refresh-symbolic");
