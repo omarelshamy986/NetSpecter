@@ -305,9 +305,18 @@ impl ReportsPage {
                 match ipc.generate_report(vec![target], vec![plan], &output_dir) {
                     Ok(paths) => {
                         glib::idle_add_once(move || {
-                            list_clone.add_report("Demo engagement", &paths.json);
-                            if let Some(html) = paths.html {
-                                list_clone.add_report("Demo (HTML)", &html);
+                            let row1 = ReportsPage::build_report_row(
+                                "Demo engagement",
+                                &paths.json,
+                            );
+                            list_clone.append(&row1);
+
+                            if let Some(html) = &paths.html {
+                                let row2 = ReportsPage::build_report_row(
+                                    "Demo (HTML)",
+                                    html,
+                                );
+                                list_clone.append(&row2);
                             }
                         });
                     }

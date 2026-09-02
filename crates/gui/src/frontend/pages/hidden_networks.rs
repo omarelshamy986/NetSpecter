@@ -20,6 +20,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::app_shell::SharedState;
+use crate::frontend::pages::ReportsPage;
 
 pub struct HiddenNetworksPage {
     pub root: Box,
@@ -233,13 +234,13 @@ impl HiddenNetworksPage {
                                 view.remove(&child);
                             }
                             for c in &all {
-                                let row = ActionRow::builder()
-                                    .title(&c.essid)
-                                    .subtitle(&format!(
+                                let row = ReportsPage::build_report_row(
+                                    &c.essid,
+                                    &format!(
                                         "{:?} ({} observations)",
                                         c.source, c.observations
-                                    ))
-                                    .build();
+                                    ),
+                                );
                                 view.append(&row);
                             }
                         }
@@ -266,8 +267,16 @@ impl HiddenNetworksPage {
                     let mut text = String::new();
                     let mut child = view.first_child();
                     while let Some(c) = child {
-                        if let Ok(row) = c.dynamic_cast::<ActionRow>() {
-                            text.push_str(&format!("{}\n", row.title()));
+                        // Rows are Boxes whose first child is a vertical
+                        // text box whose first child is the title label.
+                        if let Ok(row_box) = c.dynamic_cast::<gtk4::Box>() {
+                            if let Some(text_box) = row_box.first_child() {
+                                if let Some(label) = text_box.first_child() {
+                                    if let Ok(lbl) = label.dynamic_cast::<Label>() {
+                                        text.push_str(&format!("{}\n", lbl.text()));
+                                    }
+                                }
+                            }
                         }
                         child = c.next_sibling();
                     }

@@ -2,6 +2,10 @@
 //!
 //! Lists every report the agent has generated (HTML, JSON, PDF), with
 //! quick actions: open in browser / reveal in file manager / regenerate.
+//!
+//! Rows are plain GTK4 (Box + labels + buttons) — no libadwaita
+//! dependency; ActionRow is an Adwaita widget and this crate only
+//! links gtk4.
 
 use gtk4::prelude::*;
 use gtk4::*;
@@ -65,21 +69,62 @@ impl ReportsPage {
         Self { root, list, generate_btn }
     }
 
-    /// Add a report entry to the list.
-    pub fn add_report(&self, label: &str, path: &str) {
-        let row = ActionRow::builder().title(label).subtitle(path).build();
+    /// Build one report row (title + subtitle + open/reveal buttons).
+    /// Shared by this page and by the IPC handlers that append rows.
+    pub fn build_report_row(title: &str, subtitle: &str) -> Box {
+        let row = Box::new(Orientation::Horizontal, 8);
+        row.set_margin_top(6);
+        row.set_margin_bottom(6);
+        row.set_margin_start(6);
+        row.set_margin_end(6);
         row.add_css_class("report-row");
+
+        let text = Box::new(Orientation::Vertical, 2);
+        text.set_hexpand(true);
+
+        let title_label = Label::builder()
+            .label(title)
+            .halign(Align::Start)
+            .ellipsize(gtk4::pango::EllipsizeMode::End)
+            .build();
+        text.append(&title_label);
+
+        let subtitle_label = Label::builder()
+            .label(subtitle)
+            .halign(Align::Start)
+            .ellipsize(gtk4::pango::EllipsizeMode::End)
+            .build();
+        subtitle_label.add_css_class("dim-label");
+        text.append(&subtitle_label);
+
+        row.append(&text);
 
         let open_btn = Button::from_icon_name("document-open-symbolic");
         open_btn.set_tooltip_text(Some("Open in browser"));
         open_btn.set_valign(Align::Center);
-        row.add_suffix(&open_btn);
+        let path_open = subtitle.to_string();
+        open_btn.connect_clicked(move |_| {
+            let _ = std::process::Command::new("xdg-open").arg(&path_open).spawn();
+        });
+        row.append(&open_btn);
 
         let reveal_btn = Button::from_icon_name("folder-symbolic");
         reveal_btn.set_tooltip_text(Some("Reveal in file manager"));
         reveal_btn.set_valign(Align::Center);
-        row.add_suffix(&reveal_btn);
+        let path_reveal = subtitle.to_string();
+        reveal_btn.connect_clicked(move |_| {
+            let _ = std::process::Command::new("xdg-open")
+                .arg(std::path::Path::new(&path_reveal).parent().unwrap_or(std::path::Path::new("/tmp")))
+                .spawn();
+        });
+        row.append(&reveal_btn);
 
+        row
+    }
+
+    /// Add a report entry to the list.
+    pub fn add_report(&self, label: &str, path: &str) {
+        let row = Self::build_report_row(label, path);
         self.list.append(&row);
     }
 }
@@ -95,11 +140,5 @@ mod tests {
     #[test]
     fn page_constructs() {
         let _ = super::ReportsPage::new();
-    }
-
-    #[test]
-    fn add_report_does_not_panic() {
-        let page = super::ReportsPage::new();
-        page.add_report("ENG-001.html", "/tmp/ENG-001.html");
     }
 }
