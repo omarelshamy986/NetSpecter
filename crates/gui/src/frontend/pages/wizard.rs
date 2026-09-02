@@ -280,7 +280,7 @@ mod tests {
     // Explicit imports (not `use super::*`): the gtk4::* glob in the
     // parent re-exports a `test` item that collides with the #[test]
     // attribute macro and makes it ambiguous (E0659).
-    use super::test_util::gtk_available;
+    use crate::frontend::pages::test_util::gtk_available;
     use super::{WizardState, WizardStepKind};
 
     #[test]

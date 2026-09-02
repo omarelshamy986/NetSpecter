@@ -317,7 +317,7 @@ impl Default for HiddenNetworksPage {
 
 #[cfg(test)]
 mod tests {
-    use super::test_util::gtk_available;
+    use crate::frontend::pages::test_util::gtk_available;
 
     #[test]
     fn page_constructs() {
