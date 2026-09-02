@@ -27,7 +27,7 @@
 //! of the existing attack modules (`pmkid`, `wps`, `deauth`,
 //! `evil_twin`). This module is pure scheduling + state.
 
-use crate::cracker::{CrackJob, CrackJobStatus, CrackQueue, CrackTarget};
+use crate::cracker::{CrackJob, CrackJobStatus, CrackTarget};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;

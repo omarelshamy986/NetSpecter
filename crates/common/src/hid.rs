@@ -38,7 +38,7 @@ use serde::{Deserialize, Serialize};
 /// ESB (Enhanced ShockBurst) packet as observed on the air.
 ///
 /// nRF24 ESB packets carry a 5-byte addressing prefix (the "address"),
-//! a 9-bit packet-control field, and 0..=32 payload bytes. We surface
+/// a 9-bit packet-control field, and 0..=32 payload bytes. We surface
 /// the decoded fields the HID protocols care about.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EsbPacket {

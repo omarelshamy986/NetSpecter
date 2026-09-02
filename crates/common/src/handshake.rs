@@ -122,11 +122,10 @@ fn record_essid(
     let Some(bssid) = header.bssid() else {
         return;
     };
-    if let Some(essid) = info.essid()
-        && !essid.is_empty()
-        && !essid.starts_with("<hidden")
-    {
-        essids.entry(bssid.to_long_string()).or_insert(essid);
+    if let Some(essid) = info.essid() {
+        if !essid.is_empty() && !essid.starts_with("<hidden") {
+            essids.entry(bssid.to_long_string()).or_insert(essid);
+        }
     }
 }
 

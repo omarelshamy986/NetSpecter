@@ -30,7 +30,6 @@
 
 use num_bigint::BigUint;
 use num_integer::Integer;
-use num_traits::{One, Zero};
 
 /// The 192-byte (1536-bit) WPS Diffie-Hellman prime.
 ///
@@ -142,6 +141,7 @@ pub fn prime_sanity_check() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use num_traits::One;
 
     #[test]
     fn prime_round_trips_through_bytes() {
