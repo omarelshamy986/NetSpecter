@@ -82,6 +82,36 @@ impl Encryption {
             _ => Encryption::Unknown,
         }
     }
+
+    /// Decode the free-form `privacy` string the scanner emits into an
+    /// [`Encryption`] enum. Recognized substrings are case-insensitive.
+    ///
+    /// Lives here (common) so both the agent's WEP classifier and the
+    /// Auto-Pwn scorer share one canonical mapping.
+    pub fn from_privacy_field(field: &str) -> Encryption {
+        let upper = field.to_uppercase();
+        if upper.contains("WPA3") && upper.contains("WPA2") {
+            Encryption::Wpa3Transition
+        } else if upper.contains("WPA3") && upper.contains("ENT") {
+            Encryption::Wpa3Enterprise
+        } else if upper.contains("WPA3") {
+            Encryption::Wpa3Sae
+        } else if upper.contains("OWE") {
+            Encryption::Owe
+        } else if upper.contains("WPA2") && upper.contains("ENT") {
+            Encryption::Wpa2Enterprise
+        } else if upper.contains("WPA2") {
+            Encryption::Wpa2Psk
+        } else if upper.contains("WPA") {
+            Encryption::Wpa
+        } else if upper.contains("WEP") {
+            Encryption::Wep
+        } else if upper.contains("OPN") || upper.is_empty() {
+            Encryption::Open
+        } else {
+            Encryption::Unknown
+        }
+    }
    
     /// Is this encryption class in scope for an offline PSK attack?
     ///

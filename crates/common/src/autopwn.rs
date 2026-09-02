@@ -61,7 +61,7 @@
 //! them from their dedicated tabs after reviewing the ranked list.
 
 use crate::encryption::Encryption;
-use crate::scheduler::{AttackJob, AttackKind, AttackJobStatus, Scheduler};
+use crate::scheduler::{AttackJob, AttackKind};
 use crate::types::AP;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -181,7 +181,7 @@ pub fn rank_targets(aps: &[AP]) -> Vec<ScoredTarget> {
 /// Attach a recovered ESSID to its scored target (by BSSID).
 pub fn apply_hidden_recovery(targets: &mut [ScoredTarget], recoveries: &[(String, String)]) {
     for t in targets.iter_mut() {
-        if let Some((bssid, essid)) = recoveries.iter().find(|(b, _)| b == &t.bssid) {
+        if let Some((_bssid, essid)) = recoveries.iter().find(|(b, _)| b == &t.bssid) {
             t.hidden_recovery = Some(essid.clone());
             if t.essid == "<hidden>" {
                 t.essid = essid.clone();
@@ -307,6 +307,7 @@ pub fn build_attack_batch(
 mod tests {
     use super::*;
     use crate::types::{AP, Client};
+    use crate::scheduler::Scheduler;
     use std::collections::HashMap;
 
     fn ap(essid: &str, privacy: &str, power: &str, clients: usize, hidden: bool) -> AP {

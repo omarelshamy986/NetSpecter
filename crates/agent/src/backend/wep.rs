@@ -240,35 +240,6 @@ pub fn is_wep_target(ap: &AP) -> bool {
     normalized.contains("WEP") || matches!(Encryption::from_privacy_field(&ap.privacy), Encryption::Wep)
 }
 
-impl Encryption {
-    /// Decode the free-form `privacy` string the scanner emits into an
-    /// [`Encryption`] enum. Recognized substrings are case-insensitive.
-    pub fn from_privacy_field(field: &str) -> Encryption {
-        let upper = field.to_uppercase();
-        if upper.contains("WPA3") && upper.contains("WPA2") {
-            Encryption::Wpa3Transition
-        } else if upper.contains("WPA3") && upper.contains("ENT") {
-            Encryption::Wpa3Enterprise
-        } else if upper.contains("WPA3") {
-            Encryption::Wpa3Sae
-        } else if upper.contains("OWE") {
-            Encryption::Owe
-        } else if upper.contains("WPA2") && upper.contains("ENT") {
-            Encryption::Wpa2Enterprise
-        } else if upper.contains("WPA2") {
-            Encryption::Wpa2Psk
-        } else if upper.contains("WPA") {
-            Encryption::Wpa
-        } else if upper.contains("WEP") {
-            Encryption::Wep
-        } else if upper.contains("OPN") || upper.is_empty() {
-            Encryption::Open
-        } else {
-            Encryption::Unknown
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
