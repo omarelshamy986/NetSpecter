@@ -391,14 +391,13 @@ fn upsert_client(
                 client.power = power.to_string();
             }
             client.last_time_seen = now.to_string();
-            if let Some(probe) = probe
-                && !probe.is_empty()
-                && !client.probes.split(", ").any(|p| p == probe)
-            {
-                if client.probes.is_empty() {
-                    client.probes = probe;
-                } else {
-                    client.probes = format!("{}, {probe}", client.probes);
+            if let Some(probe) = probe {
+                if !probe.is_empty() && !client.probes.split(", ").any(|p| p == probe) {
+                    if client.probes.is_empty() {
+                        client.probes = probe;
+                    } else {
+                        client.probes = format!("{}, {probe}", client.probes);
+                    }
                 }
             }
         }

@@ -1,7 +1,7 @@
 //! Auto-Pwn page — the one-button engagement.
 //!
-//! Press Start → the agent runs the full pipeline (discover → hidden
-//! recovery → rank → attack → crack) and this page renders the live
+//! Press Start -> the agent runs the full pipeline (discover, hidden
+//! recovery, rank, attack, crack) and this page renders the live
 //! event stream: scanning status, recovered hidden ESSIDs, the ranked
 //! target table with scores, per-attack progress, and the final
 //! cracked-password wins.
@@ -9,20 +9,20 @@
 //! ## Layout
 //!
 //! ```text
-//! ┌──────────────────────────────────────────────┐
-//! │ [▶ Auto-Pwn Everything]  [■ Stop]   (spinner) │
-//! ├──────────────────────────────────────────────┤
-//! │ status line (current stage)                   │
-//! ├──────────────────────────────────────────────┤
-//! │ Ranked targets (scrollable rows):            │
-//! │  #1  Linksys-5G   WPA2  -45dBm  🔓 240 pts    │
-//! │  #2  NETGEAR      WEP   -60dBm  🔓 195 pts    │
-//! │  #3  <hidden>     WPA2  -55dBm  ⏳  90 pts    │
-//! ├──────────────────────────────────────────────┤
-//! │ Cracked:                                      │
-//! │  ✓ Linksys-5G → sunshine1985                  │
-│  ✓ NETGEAR → AA:BB:CC:DD:EE                    │
-//! └──────────────────────────────────────────────┘
+//! +----------------------------------------------+
+//! | [>] Auto-Pwn Everything  [X] Stop (spinner)  |
+//! +----------------------------------------------+
+//! | status line (current stage)                   |
+//! +----------------------------------------------+
+//! | Ranked targets (scrollable rows):             |
+//! |  #1  Linksys-5G   WPA2  -45dBm  [x] 240 pts   |
+//! |  #2  NETGEAR      WEP   -60dBm  [x] 195 pts   |
+//! |  #3  <hidden>     WPA2  -55dBm  [.]  90 pts   |
+//! +----------------------------------------------+
+//! | Cracked:                                      |
+//! |  [v] Linksys-5G -> sunshine1985               |
+//! |  [v] NETGEAR -> AA:BB:CC:DD:EE                |
+//! +----------------------------------------------+
 //! ```
 
 use gtk4::prelude::*;
