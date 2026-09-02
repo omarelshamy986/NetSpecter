@@ -48,11 +48,11 @@
 //! We send this beacon at ~10 fps until either we capture a probe
 //! response or the operator-driven timeout fires.
 
-use super::interface::get_iface;
 // Server dispatch reaches these through the attack scheduler; the bin-side
 // dead-code lint fires because the direct call sites live in another crate.
 #![allow(dead_code)]
 
+use super::interface::get_iface;
 use netspecter_common::backend_types::{HiddenSsidCandidate, SsidSource};
 use chrono::Utc;
 use libwifi::Addresses;

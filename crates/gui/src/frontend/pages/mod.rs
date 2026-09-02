@@ -21,6 +21,8 @@ pub mod evil_twin;
 pub mod hidden_networks;
 pub mod pmkid;
 pub mod reports;
+#[cfg(test)]
+pub mod test_util;
 pub mod wizard;
 
 pub use audit_log::AuditLogPage;

@@ -254,14 +254,14 @@ impl AutoPwnPage {
     /// events and applies the final result — widgets never leave the
     /// main thread.
     pub fn wire_handlers(&self, state: SharedState) {
-        let state_inner = self.state.clone();
         let state_for_start = state.clone();
 
         if let Some(ref start_btn) = self.state.borrow().start_btn {
+            let state_inner_start = self.state.clone();
             start_btn.connect_clicked(move |_btn| {
-                let s = state_inner.borrow();
+                let s = state_inner_start.borrow();
                 if let (Some(ref start), Some(ref stop), Some(ref status)) =
-                    (s.start_btn, s.stop_btn, s.status_label)
+                    (&s.start_btn, &s.stop_btn, &s.status_label)
                 {
                     start.set_sensitive(false);
                     stop.set_sensitive(true);
@@ -290,7 +290,7 @@ impl AutoPwnPage {
                                     if let Some(res) = result {
                                         let inner = page.state.borrow();
                                         if let (Some(ref start), Some(ref stop), Some(ref status)) =
-                                            (inner.start_btn, inner.stop_btn, inner.status_label)
+                                            (&inner.start_btn, &inner.stop_btn, &inner.status_label)
                                         {
                                             start.set_sensitive(true);
                                             stop.set_sensitive(false);
@@ -347,12 +347,13 @@ impl AutoPwnPage {
         }
 
         if let Some(ref stop_btn) = self.state.borrow().stop_btn {
+            let state_inner_stop = self.state.clone();
             stop_btn.connect_clicked(move |_btn| {
                 // v2.1: Stop disables the button; the pipeline exits at
                 // its own budget boundary (worker pool deadline).
-                let s = state_inner.borrow();
+                let s = state_inner_stop.borrow();
                 if let (Some(ref start), Some(ref stop), Some(ref status)) =
-                    (s.start_btn, s.stop_btn, s.status_label)
+                    (&s.start_btn, &s.stop_btn, &s.status_label)
                 {
                     stop.set_sensitive(false);
                     start.set_sensitive(true);
@@ -422,8 +423,13 @@ impl Default for AutoPwnPage {
 
 #[cfg(test)]
 mod tests {
+    use super::test_util::gtk_available;
+
     #[test]
     fn page_constructs() {
+        if !gtk_available() {
+            return; // headless CI — no display server
+        }
         let _ = super::AutoPwnPage::new();
     }
 }

@@ -269,7 +269,8 @@ impl HiddenNetworksPage {
             let state_for_stop = state.clone();
             stop_btn.connect_clicked(move |_btn| {
                 let s = state_for_stop.borrow();
-                if let Some(ref lbl) = s.hidden_networks_page.state.borrow().status_label {
+                let status_label = s.hidden_networks_page.state.borrow().status_label.clone();
+                if let Some(ref lbl) = status_label {
                     lbl.set_text("Stop is a no-op in v1.4.0 — IPC calls return on timeout.");
                 }
             });
@@ -279,13 +280,16 @@ impl HiddenNetworksPage {
             let state_for_copy = state.clone();
             copy_btn.connect_clicked(move |_btn| {
                 let s = state_for_copy.borrow();
-                if let Some(ref view) = s.hidden_networks_page.state.borrow().result_view {
+                let result_view = s.hidden_networks_page.state.borrow().result_view.clone();
+                if let Some(ref view) = result_view {
                     let mut text = String::new();
                     let mut child = view.first_child();
                     while let Some(c) = child {
                         // Rows are Boxes whose first child is a vertical
                         // text box whose first child is the title label.
-                        if let Ok(row_box) = c.dynamic_cast::<gtk4::Box>() {
+                        // `dynamic_cast` consumes the receiver, so clone
+                        // it and keep iterating with the original.
+                        if let Ok(row_box) = c.clone().dynamic_cast::<gtk4::Box>() {
                             if let Some(text_box) = row_box.first_child() {
                                 if let Some(label) = text_box.first_child() {
                                     if let Ok(lbl) = label.dynamic_cast::<Label>() {
@@ -313,13 +317,21 @@ impl Default for HiddenNetworksPage {
 
 #[cfg(test)]
 mod tests {
+    use super::test_util::gtk_available;
+
     #[test]
     fn page_constructs() {
+        if !gtk_available() {
+            return; // headless CI — no display server
+        }
         let _ = super::HiddenNetworksPage::new();
     }
 
     #[test]
     fn set_targets_handles_empty_input() {
+        if !gtk_available() {
+            return; // headless CI — no display server
+        }
         let page = super::HiddenNetworksPage::new();
         page.set_targets(&[]);
         assert!(page.selected_ap().is_none());
@@ -327,6 +339,9 @@ mod tests {
 
     #[test]
     fn set_targets_populates_dropdown() {
+        if !gtk_available() {
+            return; // headless CI — no display server
+        }
         let mut ap = netspecter_common::types::AP {
             essid: "<hidden>".into(),
             bssid: "aa:bb:cc:dd:ee:ff".into(),

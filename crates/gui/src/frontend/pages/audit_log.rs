@@ -56,8 +56,13 @@ impl Default for AuditLogPage {
 
 #[cfg(test)]
 mod tests {
+    use super::test_util::gtk_available;
+
     #[test]
     fn page_constructs() {
+        if !gtk_available() {
+            return; // headless CI — no display server
+        }
         let _ = super::AuditLogPage::new();
     }
 }

@@ -50,6 +50,13 @@ impl WizardState {
     }
 }
 
+impl SmartWizardPage {
+    /// The AP currently selected in the target dropdown.
+    pub fn selected_ap(&self) -> Option<AP> {
+        self.state.borrow().selected_ap()
+    }
+}
+
 /// The Smart Wizard notebook page.
 pub struct SmartWizardPage {
     pub root: Box,
@@ -190,13 +197,16 @@ impl SmartWizardPage {
         state.encryption_label.set_text(&format!("Encryption: {}", plan.encryption_label));
         state.rationale_label.set_text(&plan.rationale);
 
-        // Clear existing rows.
-        if let Some(ref list) = state.step_list {
+        // Clone the ListBox handle out of the state so the row-loop's
+        // immutable `list` borrow and the mutable `state.rows` push never
+        // overlap (ListBox is a cheap refcounted clone).
+        let step_list = state.step_list.clone();
+        if let Some(ref list) = step_list {
             while let Some(child) = list.first_child() {
                 list.remove(&child);
             }
-            for step in &plan.steps {
-                let row = build_step_row(step);
+            let rows: Vec<WizardRow> = plan.steps.iter().map(build_step_row).collect();
+            for row in rows {
                 list.append(&row.step_box);
                 state.rows.push(row);
             }
@@ -267,12 +277,18 @@ fn build_step_row(step: &WizardStep) -> WizardRow {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // Explicit imports (not `use super::*`): the gtk4::* glob in the
+    // parent re-exports a `test` item that collides with the #[test]
+    // attribute macro and makes it ambiguous (E0659).
+    use super::test_util::gtk_available;
+    use super::{WizardState, WizardStepKind};
 
     #[test]
     fn wizard_page_constructs_without_panic() {
-        // Just exercise the constructor — no GTK runtime in unit tests, but
-        // we ensure the struct layout is sound.
+        // WizardState::default() constructs Labels — needs a display.
+        if !gtk_available() {
+            return; // headless CI — no display server
+        }
         let state = WizardState::default();
         assert!(state.target_bssid.is_none());
         assert!(state.rows.is_empty());
