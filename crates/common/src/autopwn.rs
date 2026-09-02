@@ -441,7 +441,7 @@ mod tests {
 
     #[test]
     fn build_batch_generates_expected_kinds_for_wpa2_with_clients() {
-        let mut targets = rank_targets(&[ap("W", "WPA2", "-50", 3, false)]);
+        let targets = rank_targets(&[ap("W", "WPA2", "-50", 3, false)]);
         let jobs = build_attack_batch(&targets, &AutoPwnConfig::default());
         let kinds: Vec<AttackKind> = jobs.iter().map(|j| j.kind).collect();
         assert!(kinds.contains(&AttackKind::PmkidHarvest));
@@ -452,7 +452,7 @@ mod tests {
 
     #[test]
     fn build_batch_hidden_unrecovered_gets_recovery_job_only() {
-        let mut targets = rank_targets(&[ap("H", "WPA2", "-50", 0, true)]);
+        let targets = rank_targets(&[ap("H", "WPA2", "-50", 0, true)]);
         let jobs = build_attack_batch(&targets, &AutoPwnConfig::default());
         assert_eq!(jobs.len(), 1);
         assert_eq!(jobs[0].kind, AttackKind::HiddenSsidRecovery);

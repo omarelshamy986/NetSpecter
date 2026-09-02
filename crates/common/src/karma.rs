@@ -356,7 +356,7 @@ mod tests {
 
     #[test]
     fn build_vap_config_open_uses_no_wpa() {
-        let s = session_with_mana(false);
+        let mut s = session_with_mana(false);
         s.record_probe("TestNet", "aa:bb:cc:dd:ee:ff");
         let probe = &s.probes[0];
         let vap = s.build_vap_config(probe, 0, 6);
@@ -377,7 +377,7 @@ mod tests {
 
     #[test]
     fn build_vap_config_mana_includes_handoff_markers() {
-        let s = session_with_mana(true);
+        let mut s = session_with_mana(true);
         s.record_probe("Corp-Ent", "aa:bb:cc:dd:ee:ff");
         let probe = &s.probes[0];
         let vap = s.build_vap_config(probe, 0, 6);

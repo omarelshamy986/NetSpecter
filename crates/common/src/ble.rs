@@ -418,7 +418,7 @@ mod tests {
 
     #[test]
     fn classify_eddystone() {
-        let mut payload = vec![0x05, 0xFF, 0xE0, 0x00, 0x10]; // Google + URL frame type
+        let payload = vec![0x05, 0xFF, 0xE0, 0x00, 0x10]; // Google + URL frame type
         let dev = device_from_ad(
             "aa:bb:cc:dd:ee:ff".into(),
             AddressType::Public,

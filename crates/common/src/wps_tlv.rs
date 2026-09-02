@@ -264,10 +264,16 @@ mod tests {
 
     #[test]
     fn build_round_trips_through_parse() {
+        // Bind the vectors first: &vec![..][..] inside the entries vec
+        // creates temporaries that are freed at the end of the statement,
+        // while `build(&entries)` still borrows them (E0716).
+        let big = vec![0xab; 192];
+        let mid = vec![0xcd; 16];
+        let small = vec![0xef; 8];
         let entries = vec![
-            (0x104Au16, &vec![0xab; 192][..]),
-            (0x101Eu16, &vec![0xcd; 16][..]),
-            (0x1018u16, &vec![0xef; 8][..]),
+            (0x104Au16, &big[..]),
+            (0x101Eu16, &mid[..]),
+            (0x1018u16, &small[..]),
         ];
         let encoded = build(&entries);
         let msg = parse(&encoded).unwrap();
