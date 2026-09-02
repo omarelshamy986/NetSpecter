@@ -1,4 +1,5 @@
 pub mod app;
+pub mod autopwn_runner;
 pub mod capture;
 pub mod corroborate;
 pub mod deauth;
@@ -18,6 +19,7 @@ pub mod wpa3;
 pub mod wps;
 
 pub use app::*;
+pub use autopwn_runner::*;
 pub use capture::*;
 pub use corroborate::*;
 pub use deauth::*;
