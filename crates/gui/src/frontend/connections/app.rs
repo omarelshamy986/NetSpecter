@@ -895,13 +895,13 @@ fn start_app_refresh(app_data: Rc<AppData>) {
             move || {
                 let mut updater = globals::UPDATE_PROC.lock().unwrap();
 
-                if let Some(proc) = updater.as_mut()
-                    && proc.is_finished()
-                {
-                    if updater.take().unwrap().join().unwrap_or(false) {
-                        app_data.app_gui.update_button.show();
+                if let Some(proc) = updater.as_mut() {
+                    if proc.is_finished() {
+                        if updater.take().unwrap().join().unwrap_or(false) {
+                            app_data.app_gui.update_button.show();
+                        }
+                        return ControlFlow::Break;
                     }
-                    return ControlFlow::Break;
                 }
                 ControlFlow::Continue
             }

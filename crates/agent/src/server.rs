@@ -127,10 +127,10 @@ fn dispatch(request: Request) -> (Response, bool) {
             if !is_valid_interface_name(&iface) {
                 return (err("invalid interface name"), false);
             }
-            if let MacMode::Specific(ref mac) = mac
-                && !is_valid_mac(mac)
-            {
-                return (err("invalid MAC address"), false);
+            if let MacMode::Specific(ref mac) = mac {
+                if !is_valid_mac(mac) {
+                    return (err("invalid MAC address"), false);
+                }
             }
             match backend::set_mac_address(&iface, &mac) {
                 Ok(()) => (Response::Ok, false),
@@ -159,10 +159,10 @@ fn dispatch(request: Request) -> (Response, bool) {
             if !is_valid_interface_name(&iface) {
                 return (err("invalid interface name"), false);
             }
-            if let Some(ref filter) = channels
-                && !is_valid_channel_filter(filter, ghz_2_4, ghz_5)
-            {
-                return (err("invalid channel filter"), false);
+            if let Some(ref filter) = channels {
+                if !is_valid_channel_filter(filter, ghz_2_4, ghz_5) {
+                    return (err("invalid channel filter"), false);
+                }
             }
             match backend::set_scan_process(&iface, ghz_2_4, ghz_5, channels) {
                 Ok(()) => (Response::Ok, false),
@@ -204,10 +204,10 @@ fn dispatch(request: Request) -> (Response, bool) {
             rate,
             disassoc,
         } => {
-            if let Some(ref clients) = clients
-                && !clients.iter().all(|c| is_valid_mac(c))
-            {
-                return (err("invalid client MAC address"), false);
+            if let Some(ref clients) = clients {
+                if !clients.iter().all(|c| is_valid_mac(c)) {
+                    return (err("invalid client MAC address"), false);
+                }
             }
             let iface = match backend::get_iface() {
                 Some(iface) => iface,
