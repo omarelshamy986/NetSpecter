@@ -17,6 +17,16 @@ use netspecter_common::types::*;
 use nix::sys::socket::{getsockopt, sockopt::PeerCredentials};
 use std::io;
 use std::os::unix::net::UnixStream;
+use std::sync::Mutex;
+
+/// Global receiver for the running Auto-Pwn pipeline (None = idle).
+static AUTO_PWN_RX: Mutex<Option<std::sync::mpsc::Receiver<backend::autopwn_runner::PipelineMessage>>> =
+    Mutex::new(None);
+
+fn get_autopwn_events(
+) -> &'static Mutex<Option<std::sync::mpsc::Receiver<backend::autopwn_runner::PipelineMessage>>> {
+    &AUTO_PWN_RX
+}
 
 /// Authorize a freshly accepted connection: the peer must be the uid the agent
 /// was launched for. Without this, any local user could drive privileged
@@ -535,6 +545,50 @@ fn dispatch(request: Request) -> (Response, bool) {
                 },
                 false,
             )
+        }
+
+        Request::StartAutoPwn { config } => {
+            // Launch the pipeline; the receiver is parked in a global so
+            // PollAutoPwn can drain it.
+            let rx = backend::autopwn_runner::run_auto_pwn(config);
+            let mut store = get_autopwn_events().lock().unwrap();
+            *store = Some(rx);
+            // Drop any stale events from a previous run.
+            (Response::AutoPwnStarted, false)
+        }
+
+        Request::PollAutoPwn => {
+            let mut store = get_autopwn_events().lock().unwrap();
+            match store.as_mut() {
+                Some(rx) => {
+                    let mut events = Vec::new();
+                    let mut result = None;
+                    // Drain everything currently queued (non-blocking).
+                    while let Ok(msg) = rx.try_recv() {
+                        match msg {
+                            backend::autopwn_runner::PipelineMessage::Event(e) => {
+                                events.push(e);
+                            }
+                            backend::autopwn_runner::PipelineMessage::Done(r) => {
+                                result = Some(r);
+                            }
+                        }
+                    }
+                    if result.is_some() {
+                        // Pipeline finished — clear the store so the next
+                        // run gets a fresh channel.
+                        *store = None;
+                    }
+                    (Response::AutoPwnEvents { events, result }, false)
+                }
+                None => (
+                    Response::AutoPwnEvents {
+                        events: Vec::new(),
+                        result: None,
+                    },
+                    false,
+                ),
+            }
         }
 
         Request::Shutdown => (Response::Ok, true),

@@ -216,6 +216,37 @@ impl IpcClient {
         }
     }
 
+    /// Launch the full Auto-Pwn pipeline. Poll with poll_auto_pwn for
+    /// live events; the final result arrives in a poll batch.
+    pub fn start_auto_pwn(
+        &self,
+        config: netspecter_common::autopwn::AutoPwnConfig,
+    ) -> Result<(), IpcError> {
+        match self.call(Request::StartAutoPwn { config })? {
+            Response::AutoPwnStarted => Ok(()),
+            Response::Error { message } => Err(IpcError::AgentError(message)),
+            _ => Err(IpcError::UnexpectedResponse),
+        }
+    }
+
+    /// Poll the running Auto-Pwn pipeline: events since the last poll,
+    /// plus the final result once complete.
+    pub fn poll_auto_pwn(
+        &self,
+    ) -> Result<
+        (
+            Vec<netspecter_common::autopwn::PipelineEvent>,
+            Option<netspecter_common::autopwn::AutoPwnResult>,
+        ),
+        IpcError,
+    > {
+        match self.call(Request::PollAutoPwn)? {
+            Response::AutoPwnEvents { events, result } => Ok((events, result)),
+            Response::Error { message } => Err(IpcError::AgentError(message)),
+            _ => Err(IpcError::UnexpectedResponse),
+        }
+    }
+
     /// Launch an Evil-Twin session.
     pub fn launch_evil_twin(
         &self,

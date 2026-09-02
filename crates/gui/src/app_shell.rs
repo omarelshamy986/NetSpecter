@@ -13,14 +13,15 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::frontend::pages::{
-    AuditLogPage, EvilTwinPage, HiddenNetworksPage, PmkidPage, ReportsPage,
-    SmartWizardPage,
+    AuditLogPage, AutoPwnPage, EvilTwinPage, HiddenNetworksPage, PmkidPage,
+    ReportsPage, SmartWizardPage,
 };
 use crate::ipc_client::IpcClient;
 
 /// Shared application state.
 pub struct AppState {
     pub ipc: IpcClient,
+    pub autopwn_page: AutoPwnPage,
     pub wizard_page: SmartWizardPage,
     pub pmkid_page: PmkidPage,
     pub evil_twin_page: EvilTwinPage,
@@ -88,6 +89,7 @@ pub fn build_shell(app: &Application, ipc: IpcClient) -> SharedState {
     notebook.set_vexpand(true);
     notebook.set_hexpand(true);
 
+    let autopwn_page = AutoPwnPage::new();
     let wizard_page = SmartWizardPage::new();
     let pmkid_page = PmkidPage::new();
     let evil_twin_page = EvilTwinPage::new();
@@ -95,6 +97,7 @@ pub fn build_shell(app: &Application, ipc: IpcClient) -> SharedState {
     let reports_page = ReportsPage::new();
     let audit_log_page = AuditLogPage::new();
 
+    notebook.append_page(&autopwn_page.root, Some(&Label::new(Some("⚡ Auto-Pwn"))));
     notebook.append_page(&wizard_page.root, Some(&Label::new(Some("🧙 Wizard"))));
     notebook.append_page(&pmkid_page.root, Some(&Label::new(Some("🔑 PMKID"))));
     notebook.append_page(&evil_twin_page.root, Some(&Label::new(Some("🎭 Evil Twin"))));
@@ -107,6 +110,7 @@ pub fn build_shell(app: &Application, ipc: IpcClient) -> SharedState {
 
     let state = Rc::new(RefCell::new(AppState {
         ipc: ipc.clone(),
+        autopwn_page,
         wizard_page,
         pmkid_page,
         evil_twin_page,

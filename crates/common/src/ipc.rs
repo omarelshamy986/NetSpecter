@@ -131,6 +131,18 @@ pub enum Request {
         timeout_secs: u64,
     },
 
+    /// Launch the full Auto-Pwn pipeline (discover → hidden recovery →
+    /// rank → attack → crack). The agent streams PipelineEvent messages
+    /// over a dedicated progress socket; this request returns the final
+    /// AutoPwnResult.
+    StartAutoPwn {
+        config: AutoPwnConfig,
+    },
+
+    /// Poll the running Auto-Pwn pipeline for events since the last
+    /// poll. Returns an empty batch when the pipeline is idle.
+    PollAutoPwn,
+
     /// Launch an Evil-Twin session. Returns the new session record.
     LaunchEvilTwin {
         config: EvilTwinConfig,
@@ -199,6 +211,17 @@ pub enum Response {
         html: Option<String>,
         json: String,
         pdf: Option<String>,
+    },
+
+    /// Reply to [`Request::StartAutoPwn`] — the pipeline has launched;
+    /// poll with PollAutoPwn for events and the final result.
+    AutoPwnStarted,
+
+    /// Reply to [`Request::PollAutoPwn`] — events since the last poll,
+    /// plus the final result once the pipeline completes.
+    AutoPwnEvents {
+        events: Vec<crate::autopwn::PipelineEvent>,
+        result: Option<crate::autopwn::AutoPwnResult>,
     },
 }
 

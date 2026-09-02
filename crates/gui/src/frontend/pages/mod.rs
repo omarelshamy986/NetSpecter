@@ -16,6 +16,7 @@
 //! never touch the wireless interface directly.
 
 pub mod audit_log;
+pub mod autopwn;
 pub mod evil_twin;
 pub mod hidden_networks;
 pub mod pmkid;
@@ -23,6 +24,7 @@ pub mod reports;
 pub mod wizard;
 
 pub use audit_log::AuditLogPage;
+pub use autopwn::AutoPwnPage;
 pub use evil_twin::EvilTwinPage;
 pub use hidden_networks::HiddenNetworksPage;
 pub use pmkid::PmkidPage;

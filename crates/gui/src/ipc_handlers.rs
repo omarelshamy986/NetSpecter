@@ -27,9 +27,11 @@ use crate::frontend::pages::{
 /// Idempotent — safe to call once per page.
 pub fn wire_all(state: SharedState) {
     let mut s = state.borrow_mut();
+    s.autopwn_page.wire_handlers(state.clone());
     s.wizard_page.wire_handlers(state.clone());
     s.pmkid_page.wire_handlers(state.clone());
     s.evil_twin_page.wire_handlers(state.clone());
+    s.hidden_networks_page.wire_handlers(state.clone());
     s.reports_page.wire_handlers(state.clone());
     s.audit_log_page.wire_handlers(state.clone());
 }
