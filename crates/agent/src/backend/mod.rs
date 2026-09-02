@@ -19,20 +19,39 @@ pub mod wpa3;
 pub mod wizard;
 pub mod wps;
 
+// Re-exports: callers reach these both via the glob (legacy) and via the
+// full path (newer modules). The glob form is kept for API stability.
+#[allow(unused_imports)]
 pub use app::*;
+#[allow(unused_imports)]
 pub use autopwn_runner::*;
+#[allow(unused_imports)]
 pub use capture::*;
+#[allow(unused_imports)]
 pub use corroborate::*;
+#[allow(unused_imports)]
 pub use deauth::*;
+#[allow(unused_imports)]
 pub use evil_twin::*;
+#[allow(unused_imports)]
 pub use hidden::*;
+#[allow(unused_imports)]
 pub use hidden_beacon::*;
+#[allow(unused_imports)]
 pub use interface::*;
+#[allow(unused_imports)]
 pub use pmkid::*;
+#[allow(unused_imports)]
 pub use report::*;
+#[allow(unused_imports)]
 pub use scan::*;
+#[allow(unused_imports)]
 pub use vendors::*;
+#[allow(unused_imports)]
 pub use wep::*;
+#[allow(unused_imports)]
 pub use wpa3::*;
+#[allow(unused_imports)]
 pub use wizard::*;
+#[allow(unused_imports)]
 pub use wps::*;

@@ -255,6 +255,12 @@ struct WpsExchange {
 #[derive(Debug)]
 struct ParseError(&'static str);
 
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 fn parse_wps_exchange(m1: &[u8], m3: &[u8]) -> Result<WpsExchange, ParseError> {
     let parsed = netspecter_common::wps_tlv::ParsedExchange::parse(m1, m3)
         .map_err(|e| ParseError(match e {

@@ -239,7 +239,7 @@ pub fn discover_hidden_essid(
 
     // Step 1: passive probe harvest.
     if let Some(c) = harvest_via_probes(bssid, Duration::from_secs(60), &mut |c| {
-        if !out.iter().any(|x| x.essid == c.essid) {
+        if !out.iter().any(|x: &HiddenSsidCandidate| x.essid == c.essid) {
             out.push(c.clone());
         }
     }) {

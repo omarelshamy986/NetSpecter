@@ -107,7 +107,7 @@ pub fn start_wep_collection(
     let capture_root = get_capture_root().join(format!("wep_{}", ap.bssid.replace(':', "")));
     fs::create_dir_all(&capture_root)?;
     let ivs_path = capture_root.join(format!("{safe_essid}.ivs"));
-    let cap_path = capture_root.join(format!("{safe_essid}-01.cap"));
+    let _cap_path = capture_root.join(format!("{safe_essid}-01.cap"));
 
     // Step 1: airodump-ng for background capture
     let mut dump = Command::new("airodump-ng");
