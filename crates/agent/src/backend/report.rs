@@ -95,18 +95,9 @@ pub struct Report {
     pub wizard_plans: Vec<netspecter_common::ipc::WizardPlan>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct TargetReport {
-    pub bssid: String,
-    pub essid: String,
-    pub encryption: String,
-    pub channel: String,
-    pub clients_observed: u32,
-    pub handshake_captured: bool,
-    pub pmkid_captured: bool,
-    pub wps_recovered: bool,
-    pub hidden_recovery: Option<String>,
-}
+/// Wire-facing TargetReport lives in common::backend_types; re-exported
+/// here so existing call sites keep working.
+pub use netspecter_common::ipc::TargetReport;
 
 /// Render the JSON form.
 pub fn render_json(report: &Report, path: &Path) -> Result<(), ReportError> {

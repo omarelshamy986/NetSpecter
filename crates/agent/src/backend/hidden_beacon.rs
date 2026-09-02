@@ -224,7 +224,7 @@ pub fn build_beacon_frame(config: &BeaconFloodConfig) -> Vec<u8> {
     // Beacon interval (2 bytes) — 100 TU = 0x64 0x00
     frame.extend_from_slice(&[0x64, 0x00]);
     // Capabilities (2 bytes) — depends on encryption hint.
-    let caps = match config.encryption {
+    let caps: u16 = match config.encryption {
         EncryptionHint::Open => 0x0021,          // ESS + IBSS-free
         EncryptionHint::Wep => 0x0131,           // ESS + Privacy
         EncryptionHint::Wpa2Psk => 0x0131,       // ESS + Privacy
@@ -277,10 +277,9 @@ fn extract_probe_for_target(frame: &[u8], target_bssid: &[u8; 6]) -> Option<Hidd
         source: SsidSource::BeaconFlood,
         observations: 1,
         first_seen: Utc::now().to_rfc3339(),
-        leaking_client: {
-            let (_, ta, _) = header.addresses();
-            Some(ta.to_long_string())
-        },
+        leaking_client: header
+            .bssid()
+            .map(|m| m.to_long_string()),
     })
 }
 

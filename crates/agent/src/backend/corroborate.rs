@@ -115,29 +115,33 @@ pub fn corroborate(candidates: &[HiddenSsidCandidate]) -> Vec<CorroboratedCandid
             // Pick the original-cased ESSID from the first entry.
             let essid = group[0].essid.clone();
 
-            // Per-source contributions.
-            let mut per_source: HashMap<SsidSource, SourceContribution> = HashMap::new();
+            // Per-source contributions. SsidSource isn't Hash, so we keep a
+            // Vec and merge by scanning (candidate counts are tiny).
+            let mut per_source: Vec<SourceContribution> = Vec::new();
             let mut total_observations = 0u32;
             for c in &group {
                 total_observations += c.observations;
-                let entry = per_source
-                    .entry(c.source)
-                    .or_insert_with(|| SourceContribution {
+                if let Some(entry) = per_source
+                    .iter_mut()
+                    .find(|e| e.source == c.source)
+                {
+                    entry.observations += c.observations;
+                    if entry.leaking_client.is_none() {
+                        entry.leaking_client = c.leaking_client.clone();
+                    }
+                    if entry.first_seen > c.first_seen {
+                        entry.first_seen = c.first_seen.clone();
+                    }
+                } else {
+                    per_source.push(SourceContribution {
                         source: c.source,
-                        observations: 0,
+                        observations: c.observations,
                         leaking_client: c.leaking_client.clone(),
                         first_seen: c.first_seen.clone(),
                     });
-                entry.observations += c.observations;
-                if entry.leaking_client.is_none() {
-                    entry.leaking_client = c.leaking_client.clone();
-                }
-                if entry.first_seen > c.first_seen {
-                    // keep earliest
-                    entry.first_seen = c.first_seen.clone();
                 }
             }
-            let sources: Vec<SourceContribution> = per_source.into_values().collect();
+            let sources: Vec<SourceContribution> = per_source;
 
             // Score = sum of base scores by source + observation bonus.
             let mut score = 0u32;
@@ -204,7 +208,7 @@ pub fn summarize(c: &CorroboratedCandidate) -> String {
     let mut s = format!("[{}] '{}' (score {})", c.confidence.label(), c.essid, c.score);
     s.push_str(&format!(" — {} sources:", c.sources.len()));
     for src in &c.sources {
-        s.push_str(&format!(" {}x{}", src.source_label(), src.observations));
+        s.push_str(&format!(" {}x{}", src.source.source_label(), src.observations));
     }
     if let Some(client) = c.sources.iter().find_map(|s| s.leaking_client.as_ref()) {
         s.push_str(&format!(" (leaked by {})", client));

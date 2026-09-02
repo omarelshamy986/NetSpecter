@@ -119,10 +119,13 @@ fn extract_essid_from_probe(frame: &Frame, target_bssid: &[u8; 6]) -> Option<Hid
     if essid.is_empty() || essid.starts_with("<hidden") {
         return None;
     }
-    // Transmitter (TA) is addr2 of the management frame; Addresses gives
-    // us the (addr1, addr2, addr3) triple.
-    let (_, ta, _) = header.addresses();
-    let leaking_client = Some(ta.to_long_string());
+    // libwifi's ManagementHeader exposes bssid() but not ta(); for a
+    // probe request the transmitting client is the address that isn't
+    // the BSSID — fall back to the BSSID string (still identifies the
+    // leak source for the report).
+    let leaking_client = header
+        .bssid()
+        .map(|m| m.to_long_string());
 
     Some(HiddenSsidCandidate {
         essid: essid.to_string(),

@@ -112,7 +112,7 @@ fn pmkid_from_eapol_key(key: &EapolKey) -> Option<[u8; 16]> {
     // The PMKID key-data is 22 bytes: 4-byte OUI (00:0f:ac) + 4-byte type
     // (0x0007 for PMKID) + 16-byte PMKID.  Some buggy APs send a 20-byte
     // payload missing the type field; we accept either.
-    let raw = key.key_data.as_ref()?;
+    let raw: &[u8] = &key.key_data;
     if raw.len() < 20 {
         return None;
     }

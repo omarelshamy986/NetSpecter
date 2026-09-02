@@ -137,7 +137,7 @@ pub fn try_pixie_dust(bssid: &str, m1: &[u8], m3: &[u8]) -> WpsResult {
                 pin: Some(pin),
                 psk: None, // PSK derivation is out of band (reaver -A)
                 duration_secs: started.elapsed().as_secs(),
-                status: format!("PIN recovered via {chip} weak PRNG"),
+                status: format!("PIN recovered via {} weak PRNG", chip.name),
             };
         }
     }
@@ -190,6 +190,7 @@ pub fn try_online_brute(bssid: &str, channel: &str, timeout_secs: u64) -> WpsRes
         Ok(out) => parse_brute_output(&String::from_utf8_lossy(&out.stdout), tool),
         Err(e) => (false, None, format!("spawn failed: {e}")),
     };
+    let status = if success { status } else { format!("failed: {status}") };
 
     WpsResult {
         bssid: bssid.into(),
