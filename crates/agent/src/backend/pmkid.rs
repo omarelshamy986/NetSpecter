@@ -33,10 +33,9 @@
 
 use crate::globals::*;
 use super::interface::get_iface;
-use netspecter_common::types::*;
 use chrono::Utc;
 use libwifi::frame::EapolKey;
-use libwifi::{Addresses, Frame};
+use libwifi::Frame;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -99,12 +98,14 @@ impl PmkidCapture {
 /// until one is seen.
 pub fn extract_pmkid_from_m1(frame: &[u8]) -> Option<[u8; 16]> {
     let frame = libwifi::parse_frame(frame, false).ok()?;
-    let key = match frame {
-        Frame::Data(d) => d.eapol_key.as_ref()?,
-        Frame::QosData(d) => d.eapol_key.as_ref()?,
-        _ => return None,
+    // Clone the key payload out of the owned frame so the match arms
+    // can't borrow past the frame's own lifetime (E0597 otherwise).
+    let key: Option<EapolKey> = match frame {
+        Frame::Data(d) => d.eapol_key.clone(),
+        Frame::QosData(d) => d.eapol_key.clone(),
+        _ => None,
     };
-    pmkid_from_eapol_key(key)
+    pmkid_from_eapol_key(&key?)
 }
 
 fn pmkid_from_eapol_key(key: &EapolKey) -> Option<[u8; 16]> {

@@ -48,7 +48,6 @@
 //! We send this beacon at ~10 fps until either we capture a probe
 //! response or the operator-driven timeout fires.
 
-use crate::globals::*;
 use super::interface::get_iface;
 use netspecter_common::backend_types::{HiddenSsidCandidate, SsidSource};
 use chrono::Utc;
@@ -278,7 +277,10 @@ fn extract_probe_for_target(frame: &[u8], target_bssid: &[u8; 6]) -> Option<Hidd
         source: SsidSource::BeaconFlood,
         observations: 1,
         first_seen: Utc::now().to_rfc3339(),
-        leaking_client: Some(header.ta().to_long_string()),
+        leaking_client: {
+            let (_, ta, _) = header.addresses();
+            Some(ta.to_long_string())
+        },
     })
 }
 

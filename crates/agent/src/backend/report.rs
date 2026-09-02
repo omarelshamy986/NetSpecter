@@ -21,8 +21,6 @@
 //! HTML uses Handlebars (`handlebars` crate) with the template at
 //! `templates/report-html.hbs`. JSON is straightforward serde.
 
-use netspecter_common::encryption::Encryption;
-use netspecter_common::types::*;
 use chrono::{DateTime, Utc};
 use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};

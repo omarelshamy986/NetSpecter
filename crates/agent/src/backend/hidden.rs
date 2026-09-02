@@ -119,10 +119,10 @@ fn extract_essid_from_probe(frame: &Frame, target_bssid: &[u8; 6]) -> Option<Hid
     if essid.is_empty() || essid.starts_with("<hidden") {
         return None;
     }
-    let leaking_client = header
-        .ra()
-        .map(|m| m.to_long_string())
-        .or_else(|| Some(header.ta().to_long_string()));
+    // Transmitter (TA) is addr2 of the management frame; Addresses gives
+    // us the (addr1, addr2, addr3) triple.
+    let (_, ta, _) = header.addresses();
+    let leaking_client = Some(ta.to_long_string());
 
     Some(HiddenSsidCandidate {
         essid: essid.to_string(),

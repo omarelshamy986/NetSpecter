@@ -30,7 +30,6 @@
 //! the agent's process tree small and lets the operator replace any of the
 //! external tools without touching NetSpecter.
 
-use netspecter_common::types::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;

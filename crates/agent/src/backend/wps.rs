@@ -26,10 +26,7 @@
 
 use netspecter_common::encryption::Encryption;
 use netspecter_common::types::*;
-use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
-use sha1::Sha1;
-use sha2::{Digest, Sha256};
 use std::process::Command;
 
 /// Which WPS attack strategy to use.
