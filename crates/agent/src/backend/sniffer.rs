@@ -3,7 +3,7 @@
 //! A capture thread opens a raw `AF_PACKET` socket on the monitor interface,
 //! hops (or parks on) the requested channels, and for every frame:
 //!   * appends it to the live capture file (radiotap + 802.11, see [`super::pcap`]),
-//!   * parses it and folds the result into the shared [`APS`] / [`UNLINKED_CLIENTS`]
+//!   * parses it and folds the result into the shared APS / UNLINKED_CLIENTS globals
 //!     state that the GUI polls.
 //!
 //! Frame parsing is delegated to `radiotap` (to strip the radiotap header and read

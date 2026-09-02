@@ -24,6 +24,10 @@
 //! The agent exposes each of these as a distinct attack strategy so the
 //! SmartWizard can pick the cheapest one that fits the observed target.
 
+// Server dispatch reaches these through the attack scheduler; the bin-side
+// dead-code lint fires because the direct call sites live in another crate.
+#![allow(dead_code)]
+
 use netspecter_common::encryption::Encryption;
 use netspecter_common::types::*;
 use serde::{Deserialize, Serialize};

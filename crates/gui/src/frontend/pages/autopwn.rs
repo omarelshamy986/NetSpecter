@@ -17,7 +17,7 @@
 //! | Ranked targets (scrollable rows):             |
 //! |  #1  Linksys-5G   WPA2  -45dBm  [x] 240 pts   |
 //! |  #2  NETGEAR      WEP   -60dBm  [x] 195 pts   |
-//! |  #3  <hidden>     WPA2  -55dBm  [.]  90 pts   |
+//! |  #3  <hidden\>     WPA2  -55dBm  [.]  90 pts   |
 //! +----------------------------------------------+
 //! | Cracked:                                      |
 //! |  [v] Linksys-5G -> sunshine1985               |

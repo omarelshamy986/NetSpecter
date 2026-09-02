@@ -18,9 +18,9 @@
 //! ## Components
 //!
 //! - **`hostapd`** — the fake AP daemon. Configured at
-//!    `/tmp/netspecter/hostapd-<essid>.conf`.
+//!    `/tmp/netspecter/hostapd-<essid\>.conf`.
 //! - **`dnsmasq`** — DHCP + DNS redirection. Configured at
-//!    `/tmp/netspecter/dnsmasq-<essid>.conf`.
+//!    `/tmp/netspecter/dnsmasq-<essid\>.conf`.
 //! - **`iptables`** — NAT so the portal is inescapable.
 //! - **Captive portal** — the HTML page served by `hostapd` / `dnsmasq`.
 //!    Templates live under `templates/portal-{router,isp}.askama`.

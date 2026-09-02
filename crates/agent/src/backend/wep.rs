@@ -20,6 +20,10 @@
 //! out to `aircrack-ng`, the canonical implementation. The module's job is
 //! to (a) collect enough IVs and (b) parse the output reliably.
 
+// Server dispatch reaches these through the attack scheduler; the bin-side
+// dead-code lint fires because the direct call sites live in another crate.
+#![allow(dead_code)]
+
 use crate::globals::*;
 use netspecter_common::encryption::Encryption;
 use netspecter_common::types::*;

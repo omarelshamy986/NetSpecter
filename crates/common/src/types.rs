@@ -20,7 +20,7 @@ pub enum MacMode {
     Random,
     /// Restore the permanent hardware MAC (`macchanger -p`).
     Default,
-    /// Set a specific MAC address (`macchanger -m <mac>`).
+    /// Set a specific MAC address (`macchanger -m <mac\>`).
     Specific(String),
 }
 

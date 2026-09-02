@@ -11,7 +11,7 @@
 //!   during re-association, which is a strong affirmative signal.
 //! - **ProbeResponse**: low — APs that *do* respond with their hidden
 //!   ESSID in a probe response are leaking it, but vendors sometimes
-//!   send garbage here (placeholder strings, "<hidden>", etc).
+//!   send garbage here (placeholder strings, an empty ESSID, etc).
 //! - **VendorGuess**: very low — a heuristic. Useful as a fallback when
 //!   no observed signal exists.
 //! - **BeaconFlood**: very high — we actively provoked the client and
