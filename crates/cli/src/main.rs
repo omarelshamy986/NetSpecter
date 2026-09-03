@@ -539,9 +539,9 @@ fn run_attack(agent: &mut Agent, ap: &AP, iface: &str, action: &str) {
                     }
                     ok("the most likely name is #1 — reconnect to the list and attack it now");
                 }
-                Ok(_) => fail("no candidate surfaced — try the beacon-flood from the GUI"),
-                Err(message) => fail(&message),
                 Ok(Response::Error { message }) => fail(&message),
+                Err(message) => fail(&message),
+                Ok(_) => fail("no candidate surfaced — try the beacon-flood from the GUI"),
             }
         }
         "pmkid" => {
