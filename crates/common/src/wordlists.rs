@@ -158,7 +158,7 @@ pub fn catalog_status() -> Vec<WordlistStatus> {
     let mut out: Vec<WordlistStatus> = catalog()
         .iter()
         .map(|entry| {
-            let state = match find_installed(entry.id) {
+            let state = match find_installed(&entry.id) {
                 Some(p) => WordlistState::Ready(p.to_string_lossy().into_owned()),
                 None => WordlistState::Downloadable,
             };
@@ -253,7 +253,7 @@ pub fn ensure_available(
 pub fn default_chain() -> Vec<PathBuf> {
     catalog()
         .iter()
-        .filter_map(|e| find_installed(e.id))
+        .filter_map(|e| find_installed(&e.id))
         .collect()
 }
 
