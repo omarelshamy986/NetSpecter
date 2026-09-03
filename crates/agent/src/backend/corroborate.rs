@@ -107,8 +107,8 @@ pub fn corroborate(candidates: &[HiddenSsidCandidate]) -> Vec<CorroboratedCandid
     }
 
     let mut out: Vec<CorroboratedCandidate> = grouped
-        .into_iter()
-        .filter_map(|(_key_upper, group)| {
+        .into_values()
+        .filter_map(|group| {
             if group.is_empty() {
                 return None;
             }
@@ -147,7 +147,7 @@ pub fn corroborate(candidates: &[HiddenSsidCandidate]) -> Vec<CorroboratedCandid
             let mut score = 0u32;
             for s in &sources {
                 score += base_score(s.source);
-                score += (s.observations as u32).saturating_sub(1) * observation_bonus(s.source);
+                score += s.observations.saturating_sub(1) * observation_bonus(s.source);
             }
 
             // Confidence = band from score + number of independent sources.

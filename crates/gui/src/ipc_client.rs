@@ -21,6 +21,11 @@
 //! dropped connection surfaces as `IpcError::Disconnected`, which the
 //! pages translate to a "agent offline" status indicator.
 
+// The client is constructed and driven from the app shell / page
+// handlers, all rooted in main() — dead-code analysis under test builds
+// (where main() is replaced by the test harness) needs this allowance.
+#![allow(dead_code)]
+
 use netspecter_common::ipc::{read_msg, write_msg, Request, Response};
 use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;

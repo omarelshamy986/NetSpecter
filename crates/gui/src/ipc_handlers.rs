@@ -15,6 +15,11 @@
 //! `Send`, so the worker thread must never capture them — it sends
 //! `UiMsg` values instead, and only the main-thread pump touches widgets.
 
+// Handlers are wired from the app shell (itself driven from main());
+// under test builds the whole wiring is gone, so the dead-code lint
+// needs this allowance to not flag every wire_* entry point.
+#![allow(dead_code)]
+
 use gtk4::glib;
 use gtk4::prelude::*;
 

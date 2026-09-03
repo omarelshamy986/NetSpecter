@@ -7,6 +7,10 @@
 //! dependency; ActionRow is an Adwaita widget and this crate only
 //! links gtk4.
 
+// Constructed from the app shell (driven from main()); test builds
+// replace main() and would otherwise flag the whole page as dead code.
+#![allow(dead_code)]
+
 use gtk4::prelude::*;
 use gtk4::*;
 

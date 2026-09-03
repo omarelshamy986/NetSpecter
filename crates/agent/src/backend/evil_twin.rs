@@ -18,12 +18,12 @@
 //! ## Components
 //!
 //! - **`hostapd`** — the fake AP daemon. Configured at
-//!    `/tmp/netspecter/hostapd-<essid\>.conf`.
+//!  `/tmp/netspecter/hostapd-<essid\>.conf`.
 //! - **`dnsmasq`** — DHCP + DNS redirection. Configured at
-//!    `/tmp/netspecter/dnsmasq-<essid\>.conf`.
+//!  `/tmp/netspecter/dnsmasq-<essid\>.conf`.
 //! - **`iptables`** — NAT so the portal is inescapable.
 //! - **Captive portal** — the HTML page served by `hostapd` / `dnsmasq`.
-//!    Templates live under `templates/portal-{router,isp}.askama`.
+//!  Templates live under `templates/portal-{router,isp}.askama`.
 //!
 //! The agent does not run any of these daemons itself; it produces the
 //! configuration files and shells out to the system binaries. This keeps
@@ -209,7 +209,7 @@ fn ensure_run_dir(ssid: &str) -> Result<PathBuf, EvilTwinError> {
 
 fn write_hostapd_config(
     cfg: &EvilTwinConfig,
-    run_dir: &PathBuf,
+    run_dir: &std::path::Path,
 ) -> Result<PathBuf, EvilTwinError> {
     let path = run_dir.join("hostapd.conf");
     let bssid_line = if cfg.bssid.is_empty() {
@@ -241,7 +241,7 @@ fn write_hostapd_config(
 
 fn write_dnsmasq_config(
     cfg: &EvilTwinConfig,
-    run_dir: &PathBuf,
+    run_dir: &std::path::Path,
 ) -> Result<PathBuf, EvilTwinError> {
     let path = run_dir.join("dnsmasq.conf");
     let content = format!(
@@ -344,9 +344,11 @@ mod tests {
     fn hostapd_config_writes_bssid_when_present() {
         let tmp = std::env::temp_dir().join("netspecter_test");
         let _ = std::fs::remove_dir_all(&tmp);
-        let mut cfg = EvilTwinConfig::default();
-        cfg.ssid = "TestSSID".into();
-        cfg.bssid = "aa:bb:cc:dd:ee:ff".into();
+        let cfg = EvilTwinConfig {
+            ssid: "TestSSID".into(),
+            bssid: "aa:bb:cc:dd:ee:ff".into(),
+            ..EvilTwinConfig::default()
+        };
         let path = write_hostapd_config(&cfg, &tmp).unwrap();
         let content = std::fs::read_to_string(&path).unwrap();
         assert!(content.contains("ssid=TestSSID"));
@@ -359,8 +361,10 @@ mod tests {
     fn hostapd_config_omits_bssid_when_blank() {
         let tmp = std::env::temp_dir().join("netspecter_test2");
         let _ = std::fs::remove_dir_all(&tmp);
-        let mut cfg = EvilTwinConfig::default();
-        cfg.bssid = String::new();
+        let cfg = EvilTwinConfig {
+            bssid: String::new(),
+            ..EvilTwinConfig::default()
+        };
         let path = write_hostapd_config(&cfg, &tmp).unwrap();
         let content = std::fs::read_to_string(&path).unwrap();
         // driver=nl80211 generates its own BSSID if none specified

@@ -6,6 +6,12 @@
 //!
 //! This module is the single entry point for the GTK4 application: it
 //! builds the notebook, embeds each page, and forwards IPC events.
+//!
+//! The shell and everything below it are driven from `main()`, which is
+//! removed from test builds — without this allowance the whole UI tree
+//! shows up as dead code under `cargo test`.
+
+#![allow(dead_code)]
 
 use gtk4::prelude::*;
 use gtk4::*;

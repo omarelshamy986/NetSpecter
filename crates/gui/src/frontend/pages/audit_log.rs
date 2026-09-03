@@ -4,6 +4,10 @@
 //! surfaces the file path and the last few entries for transparency.
 //! Tamper detection and chain verification have been removed in v1.3.0.
 
+// Constructed from the app shell (driven from main()); test builds
+// replace main() and would otherwise flag the whole page as dead code.
+#![allow(dead_code)]
+
 use gtk4::prelude::*;
 use gtk4::*;
 

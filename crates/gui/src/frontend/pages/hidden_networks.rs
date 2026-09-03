@@ -14,6 +14,10 @@
 //! 4. The corroborator merges them, computes confidence, and renders the
 //!    result list with color-coded badges (HIGH / MEDIUM / LOW).
 
+// Constructed from the app shell (driven from main()); test builds
+// replace main() and would otherwise flag the whole page as dead code.
+#![allow(dead_code)]
+
 use gtk4::prelude::*;
 use gtk4::*;
 use std::cell::RefCell;

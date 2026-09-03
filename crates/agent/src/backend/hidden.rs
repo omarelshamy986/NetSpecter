@@ -109,9 +109,7 @@ fn extract_essid_from_probe(frame: &Frame, target_bssid: &[u8; 6]) -> Option<Hid
         _ => return None,
     };
     let header = &probe.header;
-    let Some(bssid) = header.bssid() else {
-        return None;
-    };
+    let bssid = header.bssid()?;
     if bssid.to_long_string().to_lowercase() != netspecter_common::crypto::format_mac(target_bssid).to_lowercase() {
         return None;
     }
@@ -206,7 +204,7 @@ fn extract_essid_from_reassoc(frame: &Frame, target_bssid: &[u8; 6]) -> Option<H
         _ => return None,
     };
     let header = &reassoc.header;
-    let Some(bssid) = header.bssid() else { return None; };
+    let bssid = header.bssid()?;
     if bssid.to_long_string().to_lowercase() != netspecter_common::crypto::format_mac(target_bssid).to_lowercase() {
         return None;
     }

@@ -268,7 +268,7 @@ fn extract_probe_for_target(frame: &[u8], target_bssid: &[u8; 6]) -> Option<Hidd
         _ => return None,
     };
     let header = &probe.header;
-    let Some(bssid) = header.bssid() else { return None };
+    let bssid = header.bssid()?;
     if bssid.to_long_string().to_lowercase() != netspecter_common::crypto::format_mac(target_bssid).to_lowercase() {
         return None;
     }
@@ -295,7 +295,7 @@ mod tests {
     fn beacon_frame_starts_with_radiotap_header() {
         let cfg = BeaconFloodConfig::new([0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff], 6);
         let frame = build_beacon_frame(&cfg);
-        assert_eq!(frame.len() >= 24, true);
+        assert!(frame.len() >= 24);
         // Radiotap version 0, length 24 (little-endian u16).
         assert_eq!(frame[0], 0x00);
         assert_eq!(frame[2], 0x18);

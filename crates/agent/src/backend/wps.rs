@@ -376,7 +376,7 @@ fn extract_field(text: &str, field: &str) -> Option<String> {
     let pos = text.find(field)?;
     let after = &text[pos + field.len()..];
     let end = after
-        .find(|c: char| c == '\n' || c == '\r')
+        .find(['\n', '\r'])
         .unwrap_or(after.len());
     Some(after[..end].trim().to_string())
 }

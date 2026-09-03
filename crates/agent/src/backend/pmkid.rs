@@ -121,9 +121,9 @@ fn pmkid_from_eapol_key(key: &EapolKey) -> Option<[u8; 16]> {
         return None;
     }
     let mut out = [0u8; 16];
-    if raw.len() >= 22 && &raw[..4] == &[0x00, 0x0f, 0xac, 0x07] {
+    if raw.len() >= 22 && raw[..4] == [0x00, 0x0f, 0xac, 0x07] {
         out.copy_from_slice(&raw[6..22]);
-    } else if raw.len() == 20 && &raw[..4] == &[0x00, 0x0f, 0xac] {
+    } else if raw.len() == 20 && raw[..4] == [0x00, 0x0f, 0xac] {
         out.copy_from_slice(&raw[4..20]);
     } else {
         return None;
@@ -250,8 +250,10 @@ fn append_pcap_record(buf: &mut Vec<u8>, frame: &[u8], link_type: u32) {
     }
     let ts = Utc::now().timestamp();
     let usec = Utc::now().timestamp_subsec_micros();
+    // ts is i64 (chrono) — a real narrowing cast to the pcap u32 field;
+    // usec is already u32 and needs no cast (clippy::unnecessary_cast).
     buf.extend_from_slice(&(ts as u32).to_le_bytes());
-    buf.extend_from_slice(&(usec as u32).to_le_bytes());
+    buf.extend_from_slice(&usec.to_le_bytes());
     buf.extend_from_slice(&(frame.len() as u32).to_le_bytes());
     buf.extend_from_slice(&(frame.len() as u32).to_le_bytes());
     buf.extend_from_slice(frame);
