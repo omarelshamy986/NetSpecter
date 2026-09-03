@@ -235,8 +235,9 @@ pub fn discover_hidden_essid(
 ) -> Vec<HiddenSsidCandidate> {
     let mut out = Vec::new();
 
-    // Step 1: passive probe harvest.
-    if let Some(c) = harvest_via_probes(bssid, Duration::from_secs(60), &mut |c| {
+    // Step 1: short passive probe harvest — most hidden names surface in the
+    // first seconds when any saved client is around; don't sit a full minute.
+    if let Some(c) = harvest_via_probes(bssid, Duration::from_secs(8), &mut |c| {
         if !out.iter().any(|x: &HiddenSsidCandidate| x.essid == c.essid) {
             out.push(c.clone());
         }
@@ -245,16 +246,20 @@ pub fn discover_hidden_essid(
         return vec![c];
     }
 
-    // Step 2: active deauth-to-reveal.
+    // Step 2: vendor-OUI guess — instant, so surface it before the slow
+    // active path so the operator always gets *something* fast.
+    if let Some(guess) = vendor_guess(bssid) {
+        log::info!("hidden: vendor-OUI guess for {bssid}: '{}'", guess.essid);
+        out.push(guess);
+        if !out.is_empty() {
+            return out;
+        }
+    }
+
+    // Step 3: active deauth-to-reveal (last resort — kicks clients).
     if let Some(c) = reveal_via_deauth(bssid, channel, Duration::from_secs(15)) {
         log::info!("hidden: recovered '{}' from deauth-to-reveal", c.essid);
         return vec![c];
-    }
-
-    // Step 3: vendor-OUI guess (best-effort; surfaced as a guess).
-    if let Some(guess) = vendor_guess(bssid) {
-        log::info!("hidden: vendor-OUI guess for {bssid}: '{}'", guess.essid);
-        return vec![guess];
     }
 
     out

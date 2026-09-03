@@ -309,6 +309,30 @@ fn record_probe(header: &ManagementHeader, info: &StationInfo, signal: Option<i3
         _ => None,
     };
 
+    // Hidden-SSID auto-recovery: a probe request addressed DIRECTLY at a known
+    // hidden AP (address_1 = that AP's BSSID) carries the hidden network's real
+    // name in the clear — that's how a client "calls out" for a hidden network
+    // it has saved. Link it into the AP table immediately so the name surfaces
+    // in the live scan with zero extra steps (the trick the classic tools used).
+    if let Some(essid) = probe.as_deref() {
+        let dst = header.address_1.to_long_string();
+        if is_unicast(&dst) {
+            let mut aps = get_aps();
+            if let Some(ap) = aps.get_mut(&dst) {
+                let still_hidden =
+                    ap.hidden || ap.essid.is_empty() || ap.essid.starts_with("[Hidden]");
+                if still_hidden {
+                    log::info!(
+                        "hidden-ssid auto-recovery: '{}' revealed by a directed probe from {station}",
+                        essid
+                    );
+                    ap.essid = essid.to_string();
+                    ap.hidden = false;
+                }
+            }
+        }
+    }
+
     record_client(&station, None, signal, probe);
 }
 
