@@ -892,6 +892,10 @@ fn pick_wordlist(agent_hint: &str) -> Option<std::path::PathBuf> {
         }
     }
     println!("  {}  {}", ui::bold("[s]"), ui::dim("skip cracking for now"));
+    println!(
+        "{}",
+        ui::dim(&format!("  {}/{} lists already on this machine", ready.len(), status.len()))
+    );
 
     loop {
         let answer = prompt("wordlist:");
