@@ -1,4 +1,4 @@
--s dir ./target/debug/netspecter ./target/debug/netspecter-agent ./target/debug/netspecter-cli ./crates/gui/icons/app_icon.png package README.md LICENSE
+-s dir ./target/debug/netspecter ./target/debug/netspecter-agent ./target/debug/netspecter-cli ./crates/gui/icons/app_icon.png package portals README.md LICENSE
 --name netspecter
 --license MIT
 --version 1.0.0
@@ -22,6 +22,7 @@ target/debug/netspecter-cli=/usr/bin/netspecter-cli
 crates/gui/icons/app_icon.png=/usr/share/pixmaps/netspecter.png
 
 package/.desktop=/usr/share/applications/com.abdo.netspecter.desktop
+portals/=/usr/share/netspecter/portals/
 package/.policy=/usr/share/polkit-1/actions/org.freedesktop.policykit.netspecter.policy
 
 README.md=/usr/share/doc/netspecter/README.md

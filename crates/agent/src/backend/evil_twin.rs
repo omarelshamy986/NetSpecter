@@ -71,6 +71,33 @@ pub struct EvilTwinConfig {
     pub nat: bool,
 }
 
+lazy_static::lazy_static! {
+    /// The running captive-portal server, if a session is live.
+    static ref PORTAL_SERVER: std::sync::Mutex<Option<super::portal_http::PortalServer>> =
+        std::sync::Mutex::new(None);
+}
+
+/// Resolve the portal directory to serve.
+///
+/// `config.portal_template` may point at either a Fluxion-format `.portal`
+/// directory or the built-in fallback; accept either so operators can drop
+/// new portals in next to the binary.
+fn resolve_portal_dir(config: &EvilTwinConfig) -> PathBuf {
+    let candidates = [
+        config.portal_template.clone(),
+        PathBuf::from("portals/TP-LINK_en.portal"),
+        PathBuf::from("/usr/share/netspecter/portals/TP-LINK_en.portal"),
+    ];
+    for c in candidates {
+        if c.join("index.html").is_file() {
+            return c;
+        }
+    }
+    // Fall back to whatever the template field names; the server will surface
+    // a clear error if it has no index.html.
+    candidates[0].clone()
+}
+
 impl Default for EvilTwinConfig {
     fn default() -> Self {
         Self {
@@ -143,6 +170,31 @@ pub fn launch(config: EvilTwinConfig) -> Result<EvilTwinSession, EvilTwinError> 
     dnsmasq.stdout(dnsmasq_log.try_clone()?).stderr(dnsmasq_log);
     dnsmasq.spawn().ok(); // dnsmasq exits if there's a port conflict — we don't fail here.
 
+    // Serve the captive portal ourselves — Fluxion-style flow without the
+    // lighttpd/php-cgi dependency. Portal directories follow Fluxion's
+    // `.portal` layout (index.html + assets); the default ships with the tool.
+    let portal_dir = resolve_portal_dir(&config);
+    let cap_path = std::path::PathBuf::from(format!(
+        "{}{}",
+        super::scan::get_old_scan_path(),
+        super::scan::get_cap_ext()
+    ));
+    let portal = super::portal_http::PortalServer::start(
+        portal_dir,
+        "10.42.0.1:80",
+        config.bssid.clone(),
+        cap_path,
+    );
+    match portal {
+        Ok(server) => {
+            *PORTAL_SERVER.lock().unwrap() = Some(server);
+        }
+        Err(e) => {
+            log::warn!("evil-twin portal server: {e}");
+            // The AP still runs; victims just can't load a page. Surface it in the log.
+        }
+    }
+
     Ok(EvilTwinSession {
         config,
         portal_url: "http://captive.portal/".into(),
@@ -160,6 +212,9 @@ pub fn stop(session: &EvilTwinSession) -> Result<(), EvilTwinError> {
     let _ = Command::new("pkill").arg("-f").arg("dnsmasq").output();
     if session.config.nat {
         disable_nat(&session.config.iface)?;
+    }
+    if let Some(mut server) = PORTAL_SERVER.lock().unwrap().take() {
+        server.stop();
     }
     Ok(())
 }

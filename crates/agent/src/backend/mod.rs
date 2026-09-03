@@ -40,6 +40,8 @@ pub use hidden_beacon::*;
 #[allow(unused_imports)]
 pub use interface::*;
 #[allow(unused_imports)]
+pub mod portal_http;
+
 pub use pmkid::*;
 #[allow(unused_imports)]
 pub use report::*;

@@ -165,7 +165,13 @@ impl Agent {
             })
             .map_err(|e| format!("handshake failed: {e}"))?;
         match resp {
-            Response::Setup { .. } => {}
+            Response::Setup {
+                missing_dependencies,
+            } => {
+                if !missing_dependencies.is_empty() {
+                    offer_install(&missing_dependencies);
+                }
+            }
             Response::Error { message } => return Err(message),
             _ => return Err("unexpected handshake response".into()),
         }
@@ -635,12 +641,22 @@ fn run_attack(agent: &mut Agent, ap: &AP, iface: &str, action: &str) {
             header("EVIL TWIN");
             let ssid = prompt(&format!("fake AP name (Enter = copy '{}'):", ap.essid));
             let ssid = if ssid.is_empty() { ap.essid.clone() } else { ssid };
+            let portal = prompt(
+                "portal skin (Enter = TP-LINK; others: NETGEAR, HUAWEI, ARRIS, Technicolor, Xfinity, Belkin, FRITZBox1/2, FRITZBox2, Siemens, Verizon, NETGEAR-Login):",
+            );
+            let portal_name = if portal.is_empty() {
+                "TP-LINK_en.portal".to_string()
+            } else if portal.contains("Login") || portal.ends_with(".portal") {
+                format!("{portal}_en.portal").replace("Login_en", "-Login_en")
+            } else {
+                format!("{portal}_en.portal")
+            };
             let config = netspecter_common::ipc::EvilTwinConfig {
                 iface: iface.into(),
                 ssid,
                 bssid: ap.bssid.clone(),
                 channel: ap.channel.parse().unwrap_or(6),
-                portal_template: "templates/portal-router.html".into(),
+                portal_template: format!("portals/{portal_name}"),
                 nat: true,
             };
             match agent.call(Request::LaunchEvilTwin { config }) {
@@ -782,6 +798,68 @@ fn print_event(ev: &netspecter_common::autopwn::PipelineEvent) {
         }
         PE::Done { cracked, attempted } => {
             println!("  {} pipeline wrapped: {cracked}/{attempted} cracked", ui::dim("✓"));
+        }
+    }
+}
+
+/// Missing-tool handling: list what's absent, offer to install it with the
+/// system's package manager, or exit. Mirrors the check every classic WiFi
+/// tool runs at startup, but with an interactive prompt instead of a hard fail.
+fn offer_install(missing: &[String]) -> ! {
+    println!();
+    fail(&format!("missing required tools: {}", missing.join(", ")));
+    println!("{}", ui::dim("  NetSpecter needs these for scanning / attacks / cracking."));
+
+    let manager = ["apt-get", "dnf", "yum", "pacman", "zypper", "apk"]
+        .iter()
+        .find(|m| netspecter_common::deps::is_installed(m))
+        .copied();
+
+    let Some(manager) = manager else {
+        println!(
+            "{}",
+            ui::yellow("  no supported package manager found — install the tools manually and re-run.")
+        );
+        goodbye();
+    };
+
+    println!();
+    let answer = prompt(&format!("[i] install them now with {manager}? [y/N]"));
+    if !matches!(answer.as_str(), "y" | "Y" | "yes") {
+        goodbye();
+    }
+
+    // Debian names differ from the binary names for a few of them.
+    let packages: Vec<String> = missing
+        .iter()
+        .map(|m| match m.as_str() {
+            "aircrack-ng" => "aircrack-ng".to_string(),
+            "hashcat" => "hashcat".to_string(),
+            "hostapd" => "hostapd".to_string(),
+            "dnsmasq" => "dnsmasq".to_string(),
+            "reaver" => "reaver".to_string(),
+            "bully" => "bully".to_string(),
+            "iw" => "iw".to_string(),
+            _ => m.clone(),
+        })
+        .collect();
+
+    println!("{}", ui::dim(&format!("running: {manager} install {}", packages.join(" "))));
+    let status = std::process::Command::new("sudo")
+        .arg(manager)
+        .arg(if manager == "apt-get" { "install" } else if manager == "pacman" { "-S" } else { "install" })
+        .arg(if manager == "apt-get" { "-y" } else if manager == "pacman" { "--noconfirm" } else { "-y" })
+        .args(&packages)
+        .status();
+
+    match status {
+        Ok(s) if s.success() => {
+            ok("installed — restart netspecter-cli and it will pick them up");
+            std::process::exit(0);
+        }
+        _ => {
+            fail("installation failed — install the tools manually and re-run");
+            goodbye();
         }
     }
 }
