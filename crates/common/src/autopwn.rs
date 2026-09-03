@@ -219,10 +219,7 @@ impl Default for AutoPwnConfig {
             hidden_timeout_secs: 45,
             workers: 4,
             attack_budget_secs: 20 * 60,
-            wordlists: vec![
-                PathBuf::from("/usr/share/wordlists/wifite.txt"),
-                PathBuf::from("/usr/share/wordlists/rockyou.txt"),
-            ],
+            wordlists: crate::wordlists::default_chain(),
             skip_wpa3_sae: true,
             min_score: 0,
         }
