@@ -76,6 +76,13 @@ impl PortalServer {
         let credentials: Arc<Mutex<Vec<CapturedSubmission>>> = Arc::new(Mutex::new(Vec::new()));
         let creds_thread = Arc::clone(&credentials);
 
+        // The accept loop hands these to every connection — Arc them so each
+        // per-connection thread gets its own clone instead of moving them out
+        // on the first request.
+        let portal_dir = Arc::new(portal_dir);
+        let bssid = Arc::new(bssid);
+        let cap_path = Arc::new(cap_path);
+
         let handle = std::thread::spawn(move || {
             for stream in listener.incoming() {
                 if stop_thread.load(Ordering::Relaxed) {
@@ -83,14 +90,11 @@ impl PortalServer {
                 }
                 let Ok(stream) = stream else { continue };
                 let creds = Arc::clone(&creds_thread);
+                let dir = Arc::clone(&portal_dir);
+                let bss = Arc::clone(&bssid);
+                let cap = Arc::clone(&cap_path);
                 std::thread::spawn(move || {
-                    let _ = handle_client(
-                        stream,
-                        &portal_dir,
-                        &bssid,
-                        &cap_path,
-                        creds,
-                    );
+                    let _ = handle_client(stream, &dir, &bss, &cap, creds);
                 });
             }
         });

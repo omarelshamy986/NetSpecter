@@ -88,9 +88,9 @@ fn resolve_portal_dir(config: &EvilTwinConfig) -> PathBuf {
         PathBuf::from("portals/TP-LINK_en.portal"),
         PathBuf::from("/usr/share/netspecter/portals/TP-LINK_en.portal"),
     ];
-    for c in candidates {
+    for c in candidates.iter() {
         if c.join("index.html").is_file() {
-            return c;
+            return c.clone();
         }
     }
     // Fall back to whatever the template field names; the server will surface
