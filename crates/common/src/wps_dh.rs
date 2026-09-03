@@ -171,7 +171,7 @@ mod tests {
         let small = BigUint::from(1u8);
         let bytes = pub_key_to_bytes(&small);
         assert_eq!(bytes.len(), 192);
-        assert_eq!(bytes[..191].iter().all(|&b| b == 0), true);
+        assert!(bytes[..191].iter().all(|&b| b == 0));
         assert_eq!(bytes[191], 1);
     }
 

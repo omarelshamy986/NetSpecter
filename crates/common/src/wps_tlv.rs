@@ -210,13 +210,13 @@ mod tests {
     #[test]
     fn parse_extracts_all_known_fields() {
         let mut buf = Vec::new();
-        buf.extend_from_slice(&tlv(0x104A, &vec![0x01; 192]));
-        buf.extend_from_slice(&tlv(0x101E, &vec![0x02; 16]));
-        buf.extend_from_slice(&tlv(0x1018, &vec![0x03; 8]));
-        buf.extend_from_slice(&tlv(0x1014, &vec![0x04; 20]));
-        buf.extend_from_slice(&tlv(0x1015, &vec![0x05; 20]));
-        buf.extend_from_slice(&tlv(0x103B, &vec![0x06; 16]));
-        buf.extend_from_slice(&tlv(0x103C, &vec![0x07; 16]));
+        buf.extend_from_slice(&tlv(0x104A, &[0x01; 192]));
+        buf.extend_from_slice(&tlv(0x101E, &[0x02; 16]));
+        buf.extend_from_slice(&tlv(0x1018, &[0x03; 8]));
+        buf.extend_from_slice(&tlv(0x1014, &[0x04; 20]));
+        buf.extend_from_slice(&tlv(0x1015, &[0x05; 20]));
+        buf.extend_from_slice(&tlv(0x103B, &[0x06; 16]));
+        buf.extend_from_slice(&tlv(0x103C, &[0x07; 16]));
 
         let msg = parse(&buf).unwrap();
         assert!(msg.has_m1_fields());
@@ -256,7 +256,7 @@ mod tests {
     #[test]
     fn parse_handles_padding_after_records() {
         // After a valid TLV, a <4-byte padding should be tolerated.
-        let mut buf = tlv(0x104A, &vec![0xff; 192]);
+        let mut buf = tlv(0x104A, &[0xff; 192]);
         buf.extend_from_slice(&[0xde, 0xad]); // 2-byte padding
         let msg = parse(&buf).unwrap();
         assert!(msg.public_key.is_some());
@@ -264,7 +264,7 @@ mod tests {
 
     #[test]
     fn build_round_trips_through_parse() {
-        // Bind the vectors first: &vec![..][..] inside the entries vec
+        // Bind the vectors first: &[..][..] inside the entries vec
         // creates temporaries that are freed at the end of the statement,
         // while `build(&entries)` still borrows them (E0716).
         let big = vec![0xab; 192];
@@ -285,11 +285,11 @@ mod tests {
     #[test]
     fn parsed_exchange_requires_both_messages() {
         let pk = vec![0xab; 192];
-        let m1 = build(&[(0x104A, &pk[..]), (0x101E, &vec![0x02; 16][..])]);
+        let m1 = build(&[(0x104A, &pk[..]), (0x101E, &[0x02; 16][..])]);
         let m3 = build(&[
-            (0x1018, &vec![0x03; 8][..]),
-            (0x1014, &vec![0x04; 20][..]),
-            (0x1015, &vec![0x05; 20][..]),
+            (0x1018, &[0x03; 8][..]),
+            (0x1014, &[0x04; 20][..]),
+            (0x1015, &[0x05; 20][..]),
         ]);
         let ex = ParsedExchange::parse(&m1, &m3).unwrap();
         assert!(ex.is_complete());
@@ -298,8 +298,8 @@ mod tests {
     #[test]
     fn parsed_exchange_incomplete_when_m3_missing_hashes() {
         let pk = vec![0xab; 192];
-        let m1 = build(&[(0x104A, &pk[..]), (0x101E, &vec![0x02; 16][..])]);
-        let m3 = build(&[(0x1018, &vec![0x03; 8][..])]); // no E-Hash1/E-Hash2
+        let m1 = build(&[(0x104A, &pk[..]), (0x101E, &[0x02; 16][..])]);
+        let m3 = build(&[(0x1018, &[0x03; 8][..])]); // no E-Hash1/E-Hash2
         let ex = ParsedExchange::parse(&m1, &m3).unwrap();
         assert!(!ex.is_complete());
     }
