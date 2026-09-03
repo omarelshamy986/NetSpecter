@@ -85,6 +85,25 @@ fn err<E: std::fmt::Display>(e: E) -> Response {
 }
 
 /// Handle one request. Returns the response and whether the agent should stop.
+/// Map an agent-side WpsResult onto the wire WpsOutcome.
+fn wps_outcome_wire(r: backend::wps::WpsResult) -> netspecter_common::wps::WpsOutcome {
+    use netspecter_common::wps::WpsAttackMethod;
+    let method = match r.strategy {
+        backend::wps::WpsStrategy::PixieDust => WpsAttackMethod::PixieDust,
+        backend::wps::WpsStrategy::OnlineBrute => WpsAttackMethod::OnlineBrute,
+        backend::wps::WpsStrategy::NullPin => WpsAttackMethod::NullPin,
+        backend::wps::WpsStrategy::Detect => WpsAttackMethod::None,
+    };
+    netspecter_common::wps::WpsOutcome {
+        bssid: r.bssid,
+        pin: r.pin,
+        psk: r.psk,
+        method,
+        duration_secs: r.duration_secs,
+        status: r.status,
+    }
+}
+
 fn dispatch(request: Request) -> (Response, bool) {
     match request {
         Request::Hello { version } => {
@@ -396,25 +415,6 @@ fn dispatch(request: Request) -> (Response, bool) {
                     (Response::HiddenSsidCandidates(vec![wire]), false)
                 }
                 None => (err("beacon-flood attack timed out without recovering an ESSID"), false),
-            }
-        }
-
-        // Map an agent-side WpsResult onto the wire WpsOutcome.
-        fn wps_outcome_wire(r: backend::wps::WpsResult) -> netspecter_common::wps::WpsOutcome {
-            use netspecter_common::wps::WpsAttackMethod;
-            let method = match r.strategy {
-                backend::wps::WpsStrategy::PixieDust => WpsAttackMethod::PixieDust,
-                backend::wps::WpsStrategy::OnlineBrute => WpsAttackMethod::OnlineBrute,
-                backend::wps::WpsStrategy::NullPin => WpsAttackMethod::NullPin,
-                backend::wps::WpsStrategy::Detect => WpsAttackMethod::None,
-            };
-            netspecter_common::wps::WpsOutcome {
-                bssid: r.bssid,
-                pin: r.pin,
-                psk: r.psk,
-                method,
-                duration_secs: r.duration_secs,
-                status: r.status,
             }
         }
 

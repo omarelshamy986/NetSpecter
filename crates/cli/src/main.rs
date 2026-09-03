@@ -32,7 +32,6 @@ mod ui {
     pub const RED: &str = "\x1b[31m";
     pub const GREEN: &str = "\x1b[32m";
     pub const YELLOW: &str = "\x1b[33m";
-    pub const BLUE: &str = "\x1b[34m";
     pub const MAGENTA: &str = "\x1b[35m";
     pub const CYAN: &str = "\x1b[36m";
     pub const RESET: &str = "\x1b[0m";
@@ -124,23 +123,18 @@ impl Agent {
         let sock_path = netspecter_common::ipc::socket_path(uid, instance);
 
         let is_root = unsafe { libc_geteuid() } == 0;
-        let mut child: Option<Child> = None;
-        if !is_root {
+        let mut child: Child = if !is_root {
             // Escalate just the agent through pkexec (same as the GUI).
             let mut cmd = Command::new("pkexec");
             cmd.arg(&agent_bin);
-            child = Some(
-                cmd.spawn()
-                    .map_err(|e| format!("failed to launch the agent via pkexec: {e} (is polkit installed?)"))?,
-            );
+            cmd.spawn()
+                .map_err(|e| format!("failed to launch the agent via pkexec: {e} (is polkit installed?)"))?
         } else {
             let mut cmd = Command::new(&agent_bin);
             cmd.env_remove("PKEXEC_UID");
-            child = Some(
-                cmd.spawn()
-                    .map_err(|e| format!("failed to launch the agent: {e}"))?,
-            );
-        }
+            cmd.spawn()
+                .map_err(|e| format!("failed to launch the agent: {e}"))?
+        };
 
         // Connect with a generous window (the user may be typing a password).
         let deadline = Instant::now() + Duration::from_secs(120);
@@ -148,12 +142,10 @@ impl Agent {
             if let Ok(s) = UnixStream::connect(&sock_path) {
                 break s;
             }
-            if let Some(c) = child.as_mut() {
-                if let Ok(Some(status)) = c.try_wait() {
-                    return Err(format!(
-                        "the agent exited before accepting a connection ({status}) — authentication cancelled?"
-                    ));
-                }
+            if let Ok(Some(status)) = child.try_wait() {
+                return Err(format!(
+                    "the agent exited before accepting a connection ({status}) — authentication cancelled?"
+                ));
             }
             if Instant::now() >= deadline {
                 return Err("timed out connecting to the agent".into());
@@ -163,7 +155,7 @@ impl Agent {
 
         let mut agent = Agent {
             stream,
-            _child: child,
+            _child: Some(child),
         };
 
         // Handshake.
@@ -439,8 +431,8 @@ fn ap_details(ap: &AP) {
         println!("{}", ui::bold(&format!("  Clients ({}):", ap.clients.len())));
         for (i, c) in ap.clients.values().enumerate().take(8) {
             println!(
-                "    {} {}  {}  {}",
-                format!("{:>2}.", i + 1),
+                "    {:>2}. {}  {}  {}",
+                i + 1,
                 c.mac,
                 ui::dim(&c.power),
                 c.vendor
@@ -548,8 +540,8 @@ fn run_attack(agent: &mut Agent, ap: &AP, iface: &str, action: &str) {
                     ok("the most likely name is #1 — reconnect to the list and attack it now");
                 }
                 Ok(_) => fail("no candidate surfaced — try the beacon-flood from the GUI"),
-                Ok(Response::Error { message }) | Err(message) => fail(&message),
-                _ => fail("unexpected response"),
+                Err(message) => fail(&message),
+                Ok(Response::Error { message }) => fail(&message),
             }
         }
         "pmkid" => {
@@ -827,7 +819,6 @@ fn main() {
     ok("agent connected");
 
     let mut aps: Vec<AP> = Vec::new();
-    let iface = iface;
 
     loop {
         if aps.is_empty() {
