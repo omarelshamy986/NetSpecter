@@ -234,8 +234,10 @@ fn decode_generic_mouse(payload: &[u8]) -> HidReport {
         return HidReport::Malformed;
     }
     let buttons = payload[0];
-    let dx = i16::from(payload[1]) >> 4; // sign-extend high nibble
-    let dy = i16::from(payload[2]) >> 4;
+    // Sign-extend: reinterpret each byte as i8 first, THEN widen and shift,
+    // so 0xFF decodes to -1 (right move) not +15.
+    let dx = (payload[1] as i8 as i16) >> 4;
+    let dy = (payload[2] as i8 as i16) >> 4;
     HidReport::Mouse {
         dx,
         dy,

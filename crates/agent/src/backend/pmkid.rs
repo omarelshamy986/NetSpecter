@@ -288,7 +288,8 @@ mod tests {
         let dir = capture_dir_for("aa:bb:cc:dd:ee:ff", "Tëst Nét / 2.4");
         let s = dir.to_string_lossy();
         // Non-ASCII replaced with `_`
-        assert!(s.contains("T_st_N_t___2_4_aa"));
+        // Non-ASCII BYTES each become `_` (ë and é are 2-byte UTF-8).
+        assert!(s.contains("T__st_N__t___2_4_aa"));
     }
 
     #[test]

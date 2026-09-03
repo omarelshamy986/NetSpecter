@@ -389,6 +389,8 @@ struct BruteOutcome {
 
 fn parse_brute_output(stdout: &str, tool: &str) -> (bool, Option<String>, String) {
     if let Some(pin) = extract_field(stdout, "WPS PIN:") {
+        // Tools quote the value ("'12345670'"); store the bare digits.
+        let pin = pin.trim_matches(|c| c == '\'' || c == '"').to_string();
         return (true, Some(pin), format!("PIN recovered via {tool}"));
     }
     if stdout.contains("WARNING: WPS lockout") || stdout.contains("AP rate-limiting") {

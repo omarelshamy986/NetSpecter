@@ -280,8 +280,17 @@ pub fn run_pool<F>(
             }
         }));
     }
+    // Join only until the deadline: a worker stuck inside attack_fn past the
+    // deadline must not stall the caller (the pool's exit condition is the
+    // deadline). An unfinished JoinHandle detaches on drop — the straggler
+    // completes its in-flight call and exits its loop on its own.
     for h in handles {
-        let _ = h.join();
+        while Instant::now() < deadline && !h.is_finished() {
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        if h.is_finished() {
+            let _ = h.join();
+        } // else: drop(h) detaches the still-running worker
     }
 }
 

@@ -317,9 +317,9 @@ mod tests {
     fn beacon_frame_embeds_empty_ssid_ie() {
         let cfg = BeaconFloodConfig::new([0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff], 6);
         let frame = build_beacon_frame(&cfg);
-        // After the MAC header (24) + body (12 bytes: timestamp + interval + caps),
-        // the first IE should be the SSID IE with length=0.
-        let body_offset = 24 + 12;
+        // Frame = radiotap(24) + MAC header(24) + body(12: ts+interval+caps).
+        // The first IE follows at 24 + 24 + 12.
+        let body_offset = 24 + 24 + 12;
         assert_eq!(frame[body_offset], 0x00); // SSID tag
         assert_eq!(frame[body_offset + 1], 0x00); // SSID length = 0 (hidden!)
     }
@@ -328,7 +328,7 @@ mod tests {
     fn beacon_frame_includes_channel_ie() {
         let cfg = BeaconFloodConfig::new([0x00; 6], 11);
         let frame = build_beacon_frame(&cfg);
-        let body_offset = 24 + 12;
+        let body_offset = 24 + 24 + 12;
         // Skip SSID (2 bytes), Supported Rates (2+8 bytes).
         let ds_offset = body_offset + 2 + 10;
         assert_eq!(frame[ds_offset], 0x03); // DS Parameter Set tag
@@ -346,8 +346,8 @@ mod tests {
             encryption: EncryptionHint::Wpa2Psk,
             ..BeaconFloodConfig::new([0; 6], 6)
         });
-        // Capabilities are at body_offset + 10 (timestamp=8, interval=2).
-        let caps_offset = 24 + 10;
+        // Capabilities: radiotap(24) + MAC header(24) + timestamp(8) + interval(2).
+        let caps_offset = 24 + 24 + 10;
         assert_ne!(
             &caps_open[caps_offset..caps_offset + 2],
             &caps_wpa[caps_offset..caps_offset + 2]

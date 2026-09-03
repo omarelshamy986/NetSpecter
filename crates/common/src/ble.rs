@@ -289,8 +289,13 @@ pub fn classify(dev: &BleDevice) -> DeviceClass {
         return DeviceClass::MedicalDevice;
     }
 
-    // Heart Rate (0x180D) — fitness tracker.
-    if dev.service_uuids.iter().any(|u| u == "180D") {
+    // Heart Rate (0x180D) — fitness tracker. UUIDs are stored lowercase
+    // ({:04x}); compare case-insensitively for resilience.
+    if dev
+        .service_uuids
+        .iter()
+        .any(|u| u.eq_ignore_ascii_case("180D"))
+    {
         return DeviceClass::FitnessTracker;
     }
 
@@ -375,7 +380,8 @@ mod tests {
 
     #[test]
     fn device_extracts_shortened_name_when_complete_absent() {
-        let payload = vec![0x03, 0x08, b'a', b'b', b'c'];
+        // len byte = 1 (type) + 3 (data) = 4.
+        let payload = vec![0x04, 0x08, b'a', b'b', b'c'];
         let dev = device_from_ad(
             "aa:bb:cc:dd:ee:ff".into(),
             AddressType::Public,
@@ -400,12 +406,14 @@ mod tests {
 
     #[test]
     fn device_extracts_manufacturer_data() {
-        // Apple (0x004C) + iBeacon header (02 01 06 1A FF ...)
-        let mut payload = vec![0x03, 0xFF, 0x4C, 0x00];
-        // Pad to 23 bytes total (manufacturer data starts at offset 2)
-        for i in 0..21 {
-            payload.push(i);
-        }
+        // Apple (0x004C) iBeacon AD: one struct carrying company id (2 LE
+        // bytes) + a 21-byte body whose head matches the iBeacon header
+        // (beacon type 0x02, spec length 0x15).
+        let mut body = vec![0x4C, 0x00, 0x02, 0x15];
+        body.extend_from_slice(&[0u8; 17]);
+        assert_eq!(body.len(), 21);
+        let mut payload = vec![1 + body.len() as u8, 0xFF];
+        payload.extend_from_slice(&body);
         let dev = device_from_ad(
             "aa:bb:cc:dd:ee:ff".into(),
             AddressType::Random,
@@ -418,7 +426,8 @@ mod tests {
 
     #[test]
     fn classify_eddystone() {
-        let payload = vec![0x05, 0xFF, 0xE0, 0x00, 0x10]; // Google + URL frame type
+        // len byte = 1 (type) + 3 (company id + frame type) = 4.
+        let payload = vec![0x04, 0xFF, 0xE0, 0x00, 0x10]; // Google + URL frame type
         let dev = device_from_ad(
             "aa:bb:cc:dd:ee:ff".into(),
             AddressType::Public,

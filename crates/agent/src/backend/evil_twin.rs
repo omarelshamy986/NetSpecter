@@ -17,13 +17,11 @@
 //!
 //! ## Components
 //!
-//! - **`hostapd`** — the fake AP daemon. Configured at
-//!  `/tmp/netspecter/hostapd-<essid\>.conf`.
-//! - **`dnsmasq`** — DHCP + DNS redirection. Configured at
-//!  `/tmp/netspecter/dnsmasq-<essid\>.conf`.
+//! - **`hostapd`** — the fake AP daemon (config: `/tmp/netspecter/hostapd-<essid\>.conf`).
+//! - **`dnsmasq`** — DHCP + DNS redirection (config: `/tmp/netspecter/dnsmasq-<essid\>.conf`).
 //! - **`iptables`** — NAT so the portal is inescapable.
-//! - **Captive portal** — the HTML page served by `hostapd` / `dnsmasq`.
-//!  Templates live under `templates/portal-{router,isp}.askama`.
+//! - **Captive portal** — the HTML page served by `hostapd` / `dnsmasq`
+//!   (templates under `templates/portal-{router,isp}.askama`).
 //!
 //! The agent does not run any of these daemons itself; it produces the
 //! configuration files and shells out to the system binaries. This keeps
@@ -211,6 +209,7 @@ fn write_hostapd_config(
     cfg: &EvilTwinConfig,
     run_dir: &std::path::Path,
 ) -> Result<PathBuf, EvilTwinError> {
+    fs::create_dir_all(run_dir)?;
     let path = run_dir.join("hostapd.conf");
     let bssid_line = if cfg.bssid.is_empty() {
         String::new()
@@ -243,6 +242,7 @@ fn write_dnsmasq_config(
     cfg: &EvilTwinConfig,
     run_dir: &std::path::Path,
 ) -> Result<PathBuf, EvilTwinError> {
+    fs::create_dir_all(run_dir)?;
     let path = run_dir.join("dnsmasq.conf");
     let content = format!(
         "interface={iface}\n\
@@ -330,7 +330,7 @@ mod tests {
             user_agent: Some("Mozilla/5.0".into()),
         };
         assert_eq!(c.client_mac, "aa:bb:cc:dd:ee:ff");
-        assert_eq!(c.password.len(), 27);
+        assert_eq!(c.password.len(), "correcthorsebatterystaple".len());
     }
 
     #[test]

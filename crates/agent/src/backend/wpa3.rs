@@ -29,6 +29,10 @@
 //! probe-transition (which would require sending a probe request and
 //! reading the response) because it has marginal benefit and adds noise.
 
+// Server dispatch reaches these through the attack scheduler; the bin-side
+// dead-code lint fires because the direct call sites live in another crate.
+#![allow(dead_code)]
+
 use netspecter_common::encryption::{Encryption, RsnIe};
 use netspecter_common::types::*;
 use serde::{Deserialize, Serialize};
@@ -125,11 +129,17 @@ pub fn encryption_from_akm(rsn: &RsnIe) -> Encryption {
     let has_ent = rsn.has_enterprise();
     let has_owe = rsn.has_owe();
 
+    // 00:0f:ac:05 is the WPA3-Enterprise AKM (Suite-B 802.1X) — it implies
+    // WPA3 without needing the SAE (ac08) personal AKM alongside it.
+    let has_wpa3_ent = rsn.akm_suites.iter().any(|s| s == "000f-ac05");
+
     if has_owe && !has_sae && !has_psk {
         Encryption::Owe
     } else if has_sae && has_psk {
         // Most dangerous case: WPA3-capable AP that still accepts WPA2.
         Encryption::Wpa3Transition
+    } else if has_wpa3_ent {
+        Encryption::Wpa3Enterprise
     } else if has_sae && has_ent {
         Encryption::Wpa3Enterprise
     } else if has_sae {

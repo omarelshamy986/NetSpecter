@@ -21,6 +21,11 @@
 //! HTML uses Handlebars (`handlebars` crate) with the template at
 //! `templates/report-html.hbs`. JSON is straightforward serde.
 
+// Part of the backend's public report API (re-exported from backend::mod);
+// consumed by the report renderer and future IPC callers, not the
+// scheduler — dead-code analysis under test builds needs this allowance.
+#![allow(dead_code)]
+
 use chrono::{DateTime, Utc};
 use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};

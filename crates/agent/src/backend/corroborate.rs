@@ -30,6 +30,10 @@
 //! HIGH confidence from 3 independent sources (Probe + DeauthReassoc +
 //! BeaconFlood)", which is exactly what an auditor wants to see.
 
+// Server dispatch reaches these through the attack scheduler; the bin-side
+// dead-code lint fires because the direct call sites live in another crate.
+#![allow(dead_code)]
+
 use netspecter_common::backend_types::HiddenSsidCandidate;
 use netspecter_common::backend_types::SsidSource;
 use serde::{Deserialize, Serialize};
@@ -39,14 +43,14 @@ use std::collections::HashMap;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Confidence {
-    /// Multiple independent sources agree.
-    High,
-    /// One observed source (probe / deauth / beacon-flood).
-    Medium,
-    /// Heuristic-only (vendor-OUI guess) or weak observation.
-    Low,
     /// No source produced any candidate.
     None,
+    /// Heuristic-only (vendor-OUI guess) or weak observation.
+    Low,
+    /// One observed source (probe / deauth / beacon-flood).
+    Medium,
+    /// Multiple independent sources agree.
+    High,
 }
 
 impl Confidence {

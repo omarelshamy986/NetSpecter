@@ -475,7 +475,7 @@ RECOVERED.1/4
 SPEED.0\t0\t50000
 SPEED.1\t0\t70000
 PROGRESS.25000/50000
-RECOVER-PLAINTEXT\tcorrecthorse
+RECOVER-PLAINTEXT.correcthorse
 ETA.until 2026-09-01T12:00:00
 ";
         let st = parse_hashcat_status(block);

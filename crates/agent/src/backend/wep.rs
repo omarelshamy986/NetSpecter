@@ -79,8 +79,15 @@ pub enum WepStrategy {
 /// `Total抓到 IVs = 41234` or `Total IVs = 41234` depending on locale. The
 /// numeric token after the trailing `=` is the IV count.
 pub fn parse_iv_count(line: &str) -> Option<u32> {
-    let pos = line.rfind('=')?;
-    let s = line[pos + 1..].trim();
+    // Prefer the numeric token after a trailing '=' (aircrack's format,
+    // stable across locales); fall back to the first numeric token for
+    // plain status lines like "Read 12345 packets".
+    let s = if let Some(pos) = line.rfind('=') {
+        line[pos + 1..].trim()
+    } else {
+        let start = line.find(|c: char| c.is_ascii_digit())?;
+        &line[start..]
+    };
     // Take only the leading numeric token (ignore trailing locale garbage).
     let end = s
         .find(|c: char| !c.is_ascii_digit())

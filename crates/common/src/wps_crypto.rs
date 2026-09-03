@@ -68,7 +68,9 @@ use sha1::Sha1;
 pub fn compute_wps_checksum(pin7: &[u8; 7]) -> u8 {
     let mut sum: u32 = 0;
     for (i, &d) in pin7.iter().enumerate() {
-        sum += (d as u32) * (i as u32 + 1);
+        // Digits arrive as ASCII bytes (b'0'..=b'9') from tools/the wire.
+        let digit = (d - b'0') as u32;
+        sum += digit * (i as u32 + 1);
     }
     (sum % 10) as u8
 }
@@ -83,7 +85,7 @@ pub fn build_full_pin(pin7: &[u8; 7]) -> Option<String> {
     let checksum = compute_wps_checksum(pin7);
     let s: String = pin7
         .iter()
-        .map(|d| (d + b'0') as char)
+        .map(|&d| d as char)
         .chain(std::iter::once((checksum + b'0') as char))
         .collect();
     Some(s)
@@ -91,7 +93,8 @@ pub fn build_full_pin(pin7: &[u8; 7]) -> Option<String> {
 
 /// Compute the candidate AuthKey for a given PIN half.
 ///
-/// `psk_half` is the 4-digit first-half string ("1234" → `[b'1', b'2', b'3', b'4']`).
+/// `psk_half` is the 4-digit half as RAW digit values ("1234" → `[1, 2, 3, 4]`);
+/// `brute_half` searches this domain and converts to ASCII on output.
 /// `shared_secret` is the 32-byte DH shared secret (or the all-zeros
 /// placeholder when running brute against a parsed exchange that didn't
 /// compute DH — operators wanting real recovery should cross-reference
@@ -236,14 +239,14 @@ mod tests {
         // From the WPS 2.0 spec, example PIN "1234567" → checksum 0
         // (1*1 + 2*2 + 3*3 + 4*4 + 5*5 + 6*6 + 7*7 = 1+4+9+16+25+36+49 = 140,
         // 140 mod 10 = 0). Full PIN: "12345670".
-        let pin7 = [1u8, 2, 3, 4, 5, 6, 7];
+        let pin7 = *b"1234567";
         assert_eq!(compute_wps_checksum(&pin7), 0);
         assert_eq!(build_full_pin(&pin7).as_deref(), Some("12345670"));
     }
 
     #[test]
     fn wps_checksum_for_0000000_yields_zero() {
-        let pin7 = [0u8; 7];
+        let pin7 = *b"0000000";
         assert_eq!(compute_wps_checksum(&pin7), 0);
         assert_eq!(build_full_pin(&pin7).as_deref(), Some("00000000"));
     }
@@ -251,14 +254,14 @@ mod tests {
     #[test]
     fn wps_checksum_for_all_nines() {
         // 9*(1+2+3+4+5+6+7) = 9 * 28 = 252 → 252 mod 10 = 2
-        let pin7 = [9u8; 7];
+        let pin7 = *b"9999999";
         assert_eq!(compute_wps_checksum(&pin7), 2);
         assert_eq!(build_full_pin(&pin7).as_deref(), Some("99999992"));
     }
 
     #[test]
     fn build_full_pin_rejects_non_digit_input() {
-        let pin7 = [1u8, 2, 3, 0xff, 5, 6, 7];
+        let pin7 = [b'1', b'2', b'3', 0xff, b'5', b'6', b'7'];
         assert!(build_full_pin(&pin7).is_none());
     }
 
@@ -312,6 +315,8 @@ mod tests {
     fn brute_full_pin_stitches_two_halves() {
         // Build a synthetic exchange for PIN "42420000" (first half 4242,
         // second half 0000, checksum 0).
+        // brute_half searches raw digit values (0..=9); build the target
+        // hashes from value halves so the search can match.
         let first_half = [4u8, 2, 4, 2];
         let second_half = [0u8, 0, 0, 0];
         let shared_secret = [0u8; 32];

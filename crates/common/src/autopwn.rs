@@ -170,9 +170,12 @@ pub fn score_ap(ap: &AP, wps_advertised: bool) -> ScoredTarget {
 
 /// Rank a scan snapshot: score every AP, sort descending.
 pub fn rank_targets(aps: &[AP]) -> Vec<ScoredTarget> {
+    // WPS advertisement is beacon evidence the scan record doesn't carry;
+    // only mark it when the caller has real WPS-IE data (score_ap is public
+    // for exactly that). Ranking never fabricates WPS eligibility.
     let mut targets: Vec<ScoredTarget> = aps
         .iter()
-        .map(|ap| score_ap(ap, Encryption::from_privacy_field(&ap.privacy).wps_eligible()))
+        .map(|ap| score_ap(ap, false))
         .collect();
     targets.sort_by_key(|a| std::cmp::Reverse(a.score));
     targets
@@ -357,7 +360,8 @@ mod tests {
         let wep = score_ap(&ap("WepNet", "WEP", "-50", 0, false), false);
         let wpa3 = score_ap(&ap("Wpa3Net", "WPA3", "-50", 0, false), false);
         assert!(wep.score > wpa3.score);
-        assert!(wep.score >= 100 + 85); // encryption + mid signal
+        // -50 dBm → 78 signal pts (linear -40→100 / -85→5) + 100 WEP pts = 178.
+        assert!(wep.score >= 100 + 78); // encryption + mid signal
     }
 
     #[test]
