@@ -15,7 +15,13 @@
 //! - Everything else            -> 307 redirect to `/` (captive capture).
 //!
 //! The server binds 10.42.0.1:80 (the gateway dnsmasq hands out) and runs until
-//! the session owner calls [`stop`].
+//! the session owner stops it via `PortalServer::stop` (driven by the
+//! Evil-Twin session teardown).
+
+// Session-driven module: the portal server runs only while an Evil-Twin
+// session is live (launched/stopped by evil_twin::launch/stop, rooted in
+// main()) — the test-build dead-code lint needs this allowance.
+#![allow(dead_code)]
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -294,9 +300,9 @@ fn verify_against_handshake(bssid: &str, password: &str, cap_path: &Path) -> Ver
 fn append_log(bssid: &str, password: &str, user_agent: &str, verified: bool) {
     use std::fmt::Write as _;
     let mut line = String::new();
-    let _ = write!(
+    let _ = writeln!(
         line,
-        "{{\"at\":\"{}\",\"bssid\":\"{}\",\"password\":\"{}\",\"user_agent\":\"{}\",\"verified\":{}}}\n",
+        "{{\"at\":\"{}\",\"bssid\":\"{}\",\"password\":\"{}\",\"user_agent\":\"{}\",\"verified\":{}}}",
         chrono::Utc::now().to_rfc3339(),
         bssid,
         password.replace('\\', "\\\\").replace('"', "\\\""),
