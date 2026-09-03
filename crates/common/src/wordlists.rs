@@ -263,7 +263,7 @@ mod tests {
 
     #[test]
     fn catalog_ids_are_unique() {
-        let mut ids: Vec<_> = catalog().iter().map(|e| e.id).collect();
+        let mut ids: Vec<_> = catalog().iter().map(|e| e.id.clone()).collect();
         ids.sort();
         let before = ids.len();
         ids.dedup();
