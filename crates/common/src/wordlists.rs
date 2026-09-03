@@ -32,15 +32,15 @@ pub fn wordlist_dir() -> PathBuf {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WordlistEntry {
     /// Stable id used on the wire (e.g. "rockyou").
-    pub id: &'static str,
+    pub id: String,
     /// Human label shown in menus (owned so custom entries can carry names).
     pub label: String,
     /// What it's good for.
-    pub description: &'static str,
+    pub description: String,
     /// Approximate download size (human-readable, advisory only).
-    pub size: &'static str,
+    pub size: String,
     /// Direct download URL.
-    pub url: &'static str,
+    pub url: String,
     /// Suggested tier order: 0 = try first (fast small lists), higher = slower.
     pub tier: u8,
 }
@@ -48,43 +48,43 @@ pub struct WordlistEntry {
 pub fn catalog() -> Vec<WordlistEntry> {
     vec![
     WordlistEntry {
-        id: "wifi-top-447",
+        id: "wifi-top-447".into(),
         label: "Top-447 WiFi passwords".into(),
-        description: "Statistically most common WPA passphrases; cracks lazy routers in seconds",
-        size: "4 KB",
-        url: "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/WiFi-WPA/probable-v2-wpa-top447.txt",
+        description: "Statistically most common WPA passphrases; cracks lazy routers in seconds".into(),
+        size: "4 KB".into(),
+        url: "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/WiFi-WPA/probable-v2-wpa-top447.txt".into(),
         tier: 0,
     },
     WordlistEntry {
-        id: "wifi-top-4800",
+        id: "wifi-top-4800".into(),
         label: "Top-4800 WiFi passwords".into(),
-        description: "Wider WPA-specific list; still runs in under a minute",
-        size: "45 KB",
-        url: "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/WiFi-WPA/probable-v2-wpa-top4800.txt",
+        description: "Wider WPA-specific list; still runs in under a minute".into(),
+        size: "45 KB".into(),
+        url: "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/WiFi-WPA/probable-v2-wpa-top4800.txt".into(),
         tier: 1,
     },
     WordlistEntry {
-        id: "common-10k",
+        id: "common-10k".into(),
         label: "Top-10k common passwords".into(),
-        description: "The universal 123456/password tier from leak aggregates",
-        size: "80 KB",
-        url: "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/Pwdb_top-10000.txt",
+        description: "The universal 123456/password tier from leak aggregates".into(),
+        size: "80 KB".into(),
+        url: "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/Pwdb_top-10000.txt".into(),
         tier: 2,
     },
     WordlistEntry {
-        id: "pwdb-100k",
+        id: "pwdb-100k".into(),
         label: "Pwdb top-100k".into(),
-        description: "Modern 100k leak-database aggregate; good middle ground",
-        size: "730 KB",
-        url: "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/Pwdb_top-100000.txt",
+        description: "Modern 100k leak-database aggregate; good middle ground".into(),
+        size: "730 KB".into(),
+        url: "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/Pwdb_top-100000.txt".into(),
         tier: 3,
     },
     WordlistEntry {
-        id: "rockyou",
+        id: "rockyou".into(),
         label: "rockyou (14.3M)".into(),
-        description: "The classic 14M-password leak; the standard serious run (minutes+)",
-        size: "134 MB",
-        url: "https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt",
+        description: "The classic 14M-password leak; the standard serious run (minutes+)".into(),
+        size: "134 MB".into(),
+        url: "https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt".into(),
         tier: 4,
     },
     ]
@@ -180,11 +180,11 @@ pub fn catalog_status() -> Vec<WordlistStatus> {
                     .unwrap_or_default();
                 out.push(WordlistStatus {
                     entry: WordlistEntry {
-                        id: "custom",
+                        id: "custom".into(),
                         label: name.clone(),
-                        description: "your own list (from the wordlists dir)",
-                        size: "?",
-                        url: "",
+                        description: "your own list (from the wordlists dir)".into(),
+                        size: "?".into(),
+                        url: "".into(),
                         tier: 5,
                     },
                     state: WordlistState::Ready(path.to_string_lossy().into_owned()),
@@ -209,7 +209,7 @@ pub fn ensure_available(
     }
 
     let entry = catalog()
-        .iter()
+        .into_iter()
         .find(|e| e.id == id)
         .ok_or_else(|| format!("unknown wordlist id: {id}"))?;
 
