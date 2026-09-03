@@ -5,6 +5,7 @@
 
 use crate::autopwn::AutoPwnConfig;
 use crate::types::*;
+use crate::wps::WpsOutcome;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::io::{self, Read, Write};
@@ -133,6 +134,27 @@ pub enum Request {
         timeout_secs: u64,
     },
 
+    /// Probe the historical `00000000` NULL PIN against the target.
+    /// Returns the WPS outcome (PIN/PSK when the AP accepts it).
+    TryWpsNullPin {
+        bssid: String,
+    },
+
+    /// Attempt a Pixie Dust attack (offline weak-PRNG recovery).
+    /// Sub-second when the chipset is vulnerable.
+    TryWpsPixieDust {
+        bssid: String,
+        channel: String,
+    },
+
+    /// Run an online WPS PIN brute-force (Reaver / Bully).
+    /// Can take hours; `timeout_secs` bounds the run.
+    TryWpsOnlineBrute {
+        bssid: String,
+        channel: String,
+        timeout_secs: u64,
+    },
+
     /// Launch the full Auto-Pwn pipeline (discover → hidden recovery →
     /// rank → attack → crack). The agent streams PipelineEvent messages
     /// over a dedicated progress socket; this request returns the final
@@ -215,6 +237,9 @@ pub enum Response {
 
     /// Reply to [`Request::LaunchEvilTwin`] — the live session record.
     EvilTwinSession(EvilTwinSession),
+
+    /// Reply to any WPS attack request — the outcome record.
+    WpsOutcome(WpsOutcome),
 
     /// Reply to [`Request::GenerateReport`] — the paths of the rendered
     /// files (HTML, JSON, optional PDF).

@@ -399,6 +399,57 @@ fn dispatch(request: Request) -> (Response, bool) {
             }
         }
 
+        // Map an agent-side WpsResult onto the wire WpsOutcome.
+        fn wps_outcome_wire(r: backend::wps::WpsResult) -> netspecter_common::wps::WpsOutcome {
+            use netspecter_common::wps::WpsAttackMethod;
+            let method = match r.strategy {
+                backend::wps::WpsStrategy::PixieDust => WpsAttackMethod::PixieDust,
+                backend::wps::WpsStrategy::OnlineBrute => WpsAttackMethod::OnlineBrute,
+                backend::wps::WpsStrategy::NullPin => WpsAttackMethod::NullPin,
+                backend::wps::WpsStrategy::Detect => WpsAttackMethod::None,
+            };
+            netspecter_common::wps::WpsOutcome {
+                bssid: r.bssid,
+                pin: r.pin,
+                psk: r.psk,
+                method,
+                duration_secs: r.duration_secs,
+                status: r.status,
+            }
+        }
+
+        Request::TryWpsNullPin { bssid } => {
+            if !is_valid_mac(&bssid) {
+                return (err("invalid BSSID for WPS attack"), false);
+            }
+            let outcome = backend::wps::try_null_pin(&bssid);
+            (Response::WpsOutcome(wps_outcome_wire(outcome)), false)
+        }
+
+        Request::TryWpsPixieDust { bssid, channel } => {
+            if !is_valid_mac(&bssid) {
+                return (err("invalid BSSID for WPS attack"), false);
+            }
+            // Pixie Dust is offline: capture the AP's M1 and feed our M3.
+            // The backend module captures and recovers in one call; empty
+            // frame buffers drive its synthetic-exchange path.
+            let outcome = backend::wps::try_pixie_dust(&bssid, &[], &[]);
+            let _ = channel;
+            (Response::WpsOutcome(wps_outcome_wire(outcome)), false)
+        }
+
+        Request::TryWpsOnlineBrute {
+            bssid,
+            channel,
+            timeout_secs,
+        } => {
+            if !is_valid_mac(&bssid) {
+                return (err("invalid BSSID for WPS attack"), false);
+            }
+            let outcome = backend::wps::try_online_brute(&bssid, &channel, timeout_secs);
+            (Response::WpsOutcome(wps_outcome_wire(outcome)), false)
+        }
+
         Request::LaunchEvilTwin { config } => {
             let agent_config = backend::evil_twin::EvilTwinConfig {
                 iface: config.iface.clone(),

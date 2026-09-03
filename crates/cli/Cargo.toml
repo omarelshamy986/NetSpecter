@@ -1,0 +1,19 @@
+[package]
+name = "netspecter-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Interactive guided front-end for NetSpecter - scan, pick a target, get the recommended attack, run it."
+homepage.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "netspecter-cli"
+path = "src/main.rs"
+
+[dependencies]
+netspecter-common.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+log.workspace = true
+env_logger.workspace = true
