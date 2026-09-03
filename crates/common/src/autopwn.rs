@@ -488,7 +488,9 @@ mod tests {
         let jobs = build_attack_batch(&targets, &AutoPwnConfig::default());
         let mut sched = Scheduler::new();
         let ids = sched.submit_batch(jobs);
-        assert_eq!(ids.len(), 4); // PMKID + handshake for Crk, recovery for Hid
+        // No WPS-IE evidence in the scan snapshot → no Pixie-Dust job:
+        // PMKID + handshake for Crk, recovery for Hid = 3.
+        assert_eq!(ids.len(), 3);
         // First pull is a PMKID job (highest priority kind).
         let first = sched.next_runnable().unwrap();
         assert_eq!(first.kind, AttackKind::PmkidHarvest);

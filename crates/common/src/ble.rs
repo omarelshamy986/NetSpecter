@@ -410,8 +410,9 @@ mod tests {
         // bytes) + a 21-byte body whose head matches the iBeacon header
         // (beacon type 0x02, spec length 0x15).
         let mut body = vec![0x4C, 0x00, 0x02, 0x15];
-        body.extend_from_slice(&[0u8; 17]);
-        assert_eq!(body.len(), 21);
+        body.extend_from_slice(&[0u8; 19]);
+        // company id (2) + iBeacon body (21) = 23 bytes of manufacturer data.
+        assert_eq!(body.len(), 23);
         let mut payload = vec![1 + body.len() as u8, 0xFF];
         payload.extend_from_slice(&body);
         let dev = device_from_ad(

@@ -327,8 +327,9 @@ mod tests {
 
         let full = brute_full_pin(&e_hash1, &e_hash2, &shared_secret);
         // first_half = 4242, second_half = 0000 → 7-digit PIN = "4242000",
-        // checksum = (4*1 + 2*2 + 4*3 + 2*4 + 0*5 + 0*6 + 0*7) % 10 = 0.
-        assert_eq!(full.as_deref(), Some("42420000"));
+        // checksum = (4*1 + 2*2 + 4*3 + 2*4 + 0*5 + 0*6 + 0*7) % 10
+        //           = (4 + 4 + 12 + 8) % 10 = 28 % 10 = 8.
+        assert_eq!(full.as_deref(), Some("42420008"));
     }
 
     #[test]

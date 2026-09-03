@@ -138,9 +138,7 @@ pub fn encryption_from_akm(rsn: &RsnIe) -> Encryption {
     } else if has_sae && has_psk {
         // Most dangerous case: WPA3-capable AP that still accepts WPA2.
         Encryption::Wpa3Transition
-    } else if has_wpa3_ent {
-        Encryption::Wpa3Enterprise
-    } else if has_sae && has_ent {
+    } else if has_wpa3_ent || (has_sae && has_ent) {
         Encryption::Wpa3Enterprise
     } else if has_sae {
         Encryption::Wpa3Sae
