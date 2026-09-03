@@ -724,7 +724,7 @@ fn run_attack(agent: &mut Agent, ap: &AP, iface: &str, action: &str) {
 
             println!(
                 "{}",
-                ui::dim(&format!("hashcat -m 22000 {list} {src} …"))
+                ui::dim(&format!("hashcat -m 22000 {} {src} …", list.display()))
             );
             let status = std::process::Command::new("hashcat")
                 .arg("-m").arg("22000")
@@ -883,8 +883,8 @@ fn pick_wordlist(agent_hint: &str) -> Option<std::path::PathBuf> {
         println!(
             "  {} {} {} {}",
             ui::bold(&format!("[{}]", i + 1)),
-            ui::bold(w.entry.label),
-            ui::dim(w.entry.description),
+            ui::bold(&w.entry.label),
+            ui::dim(&w.entry.description),
             mark
         );
         if let WordlistState::Ready(p) = &w.state {
@@ -910,7 +910,7 @@ fn pick_wordlist(agent_hint: &str) -> Option<std::path::PathBuf> {
                     WordlistState::Ready(p) => std::path::PathBuf::from(p),
                     WordlistState::Downloadable => {
                         println!();
-                        match wordlists::ensure_available(w.entry.id, |line| {
+                        match wordlists::ensure_available(&w.entry.id, |line| {
                             println!("  {}", ui::dim(line));
                         }) {
                             Ok(p) => {
