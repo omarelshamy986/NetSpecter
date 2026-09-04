@@ -225,22 +225,41 @@ pub fn ensure_available(
     let dest = dir.join(filename);
     let tmp = dir.join(format!("{filename}.part"));
 
-    progress(&format!("downloading {} (~{})…", entry.label, entry.size));
-    let status = std::process::Command::new("curl")
-        .arg("-fL")
-        .arg("--progress-bar")
-        .arg("-o")
-        .arg(&tmp)
-        .arg(entry.url)
-        .status()
-        .map_err(|e| format!("could not run curl: {e} (is it installed?)"))?;
+    // Primary URL, then mirrors (jsdelivr CDN mirrors GitHub raw; rockyou's
+    // GitHub release also lives on gitea/zzz.cm). Keeps downloads working
+    // when a single host moves or rate-limits.
+    let mirror = entry
+        .url
+        .replace("https://raw.githubusercontent.com/", "https://cdn.jsdelivr.net/gh/")
+        .replace("/master/", "@master/");
+    let sources = if mirror == entry.url {
+        vec![entry.url.clone()]
+    } else {
+        vec![entry.url.clone(), mirror]
+    };
 
-    if !status.success() {
+    progress(&format!("downloading {} (~{})…", entry.label, entry.size));
+    let mut last_err = String::new();
+    for (attempt, url) in sources.iter().enumerate() {
+        let status = std::process::Command::new("curl")
+            .arg("-fL")
+            .arg("--progress-bar")
+            .arg("-o")
+            .arg(&tmp)
+            .arg(url)
+            .status()
+            .map_err(|e| format!("could not run curl: {e} (is it installed?)"))?;
+        if status.success() {
+            break;
+        }
         let _ = std::fs::remove_file(&tmp);
-        return Err(format!(
-            "download failed (curl exit {}). Check the internet connection.",
-            status.code().unwrap_or(-1)
-        ));
+        last_err = format!("download failed (curl exit {})", status.code().unwrap_or(-1));
+        if attempt + 1 < sources.len() {
+            progress("primary failed — trying mirror…");
+        }
+    }
+    if !tmp.is_file() {
+        return Err(format!("{last_err}. Check the internet connection."));
     }
     std::fs::rename(&tmp, &dest)
         .map_err(|e| format!("could not finalize the download: {e}"))?;

@@ -494,6 +494,11 @@ fn dispatch(request: Request) -> (Response, bool) {
             }
         }
 
+        Request::IsEvilTwinPasswordVerified => {
+            let verified = backend::portal_http::password_verified();
+            (Response::Bool(verified), false)
+        }
+
         Request::StopEvilTwin { iface } => {
             // Stop the REAL live session (launch() stores it; a dummy here
             // would have no pids and nothing would actually die).

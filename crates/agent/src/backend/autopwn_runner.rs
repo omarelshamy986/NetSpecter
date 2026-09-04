@@ -159,9 +159,11 @@ fn pipeline_body(
     let _ = attack_started;
 
     // ── Stage 5: Crack queue for every capture ────────────────────
-    // The attack modules already persist captures on disk
-    // (~/.netspecter/captures/...). Walk the wordlist chain over any
-    // hashfiles produced during this run.
+    // First surface anything the attack modules already recovered, then run
+    // the wordlist chain (hashcat -m 22000) over every .hc22000 the run
+    // persisted under the capture root. Wordlists come from the caller's
+    // config — empty on a machine with none installed (download is the
+    // operator's explicit choice in the CLI).
     for (bssid, essid, secret) in cracked_sink.lock().unwrap().iter() {
         emit(
             tx,
@@ -171,6 +173,33 @@ fn pipeline_body(
             },
         );
         cracked.push((bssid.clone(), essid.clone(), secret.clone()));
+    }
+
+    if !cfg.wordlists.is_empty() && netspecter_common::deps::is_installed("hashcat") {
+        let hashfiles = collect_hc22000_files();
+        for hashfile in &hashfiles {
+            let target_essid = hashfile
+                .file_stem()
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            emit(
+                tx,
+                PipelineEvent::Cracking {
+                    hashfile: hashfile.display().to_string(),
+                    wordlist: cfg.wordlists[0].display().to_string(),
+                },
+            );
+            if let Some(password) = crack_with_hashcat(&hashfile, &cfg.wordlists) {
+                emit(
+                    tx,
+                    PipelineEvent::Cracked {
+                        password: password.clone(),
+                        target_essid: target_essid.clone(),
+                    },
+                );
+                cracked.push((String::new(), target_essid, password));
+            }
+        }
     }
 
     let attempted = {
@@ -196,6 +225,57 @@ fn pipeline_body(
 ///
 /// Dispatch by kind to the module that owns the attack; each call is
 /// bounded by `timeout`.
+/// Every hashcat-ready (.hc22000) capture under the agent's capture root.
+fn collect_hc22000_files() -> Vec<std::path::PathBuf> {
+    let mut out = Vec::new();
+    let root = crate::globals::get_capture_root();
+    fn walk(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            for e in entries.flatten() {
+                let p = e.path();
+                if p.is_dir() {
+                    walk(&p, out);
+                } else if p.extension().and_then(|x| x.to_str()) == Some("hc22000") {
+                    out.push(p);
+                }
+            }
+        }
+    }
+    walk(&root, &mut out);
+    out
+}
+
+/// Run hashcat -m 22000 over the wordlist chain; return the first recovered
+/// password. Exits quietly when hashcat is missing or nothing matches.
+fn crack_with_hashcat(
+    hashfile: &std::path::Path,
+    wordlists: &[std::path::PathBuf],
+) -> Option<String> {
+    for list in wordlists {
+        if !list.is_file() {
+            continue;
+        }
+        let out = std::process::Command::new("hashcat")
+            .arg("-m")
+            .arg("22000")
+            .arg("--quiet")
+            .arg(hashfile)
+            .arg(list)
+            .output()
+            .ok()?;
+        let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+        // hashcat prints "hash:password" on a successful crack.
+        for line in stdout.lines() {
+            if let Some((_, password)) = line.rsplit_once(':') {
+                if !password.is_empty() && !password.starts_with("HASHFILE") {
+                    return Some(password.trim().to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
 fn run_attack_job(
     job: &AttackJob,
     timeout: Duration,

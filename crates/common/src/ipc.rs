@@ -177,6 +177,10 @@ pub enum Request {
         iface: String,
     },
 
+    /// Poll whether the live Evil-Twin portal has verified a password yet
+    /// (the CLI uses it to end the session automatically on success).
+    IsEvilTwinPasswordVerified,
+
     /// Render a pentest report. Returns the paths of the produced files.
     GenerateReport {
         targets: Vec<TargetReport>,

