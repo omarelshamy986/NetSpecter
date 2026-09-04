@@ -331,10 +331,10 @@ mod tests {
         let e_hash2 = compute_e_hash(&auth_key_second, 2);
 
         let full = brute_full_pin(&e_hash1, &e_hash2, &shared_secret);
-        // first_half = 4242, second_half = 0000 → 7-digit PIN = "4242000",
-        // checksum = (4*1 + 2*2 + 4*3 + 2*4 + 0*5 + 0*6 + 0*7) % 10
-        //           = (4 + 4 + 12 + 8) % 10 = 28 % 10 = 8.
-        assert_eq!(full.as_deref(), Some("42420008"));
+        // first_half = 4242, second_half = 0000 → 7-digit PIN = "4242000".
+        // Spec checksum: 4*3 + 2*1 + 4*3 + 2*1 + 0 + 0 + 0 = 28 → 28 % 10 = 8,
+        // complement → 10 - 8 = 2 → full PIN "42420002".
+        assert_eq!(full.as_deref(), Some("42420002"));
     }
 
     #[test]
