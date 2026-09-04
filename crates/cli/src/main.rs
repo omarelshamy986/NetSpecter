@@ -696,14 +696,13 @@ fn run_attack(agent: &mut Agent, ap: &AP, iface: &str, action: &str) {
                             println!("{}", ui::dim("stopping on request…"));
                             break;
                         }
-                        match agent.call(Request::IsEvilTwinPasswordVerified) {
-                            Ok(Response::Bool(true)) => {
-                                let secs = started.elapsed().as_secs();
-                                println!();
-                                ok(&format!("PASSWORD VERIFIED — captured in {secs}s. Stopping the attack…"));
-                                break;
-                            }
-                            _ => {}
+                        if let Ok(Response::Bool(true)) =
+                            agent.call(Request::IsEvilTwinPasswordVerified)
+                        {
+                            let secs = started.elapsed().as_secs();
+                            println!();
+                            ok(&format!("PASSWORD VERIFIED — captured in {secs}s. Stopping the attack…"));
+                            break;
                         }
                         print!(".");
                         let _ = std::io::Write::flush(&mut std::io::stdout());

@@ -598,7 +598,13 @@ ETA.until 2026-09-01T12:00:00
         for x in lcg(seed).take(len) {
             // Mixed control chars, colons, stars — the separators the parsers slice on.
             let b = (x >> 33) as u8;
-            let ch = if b % 4 == 0 { ':' } else if b % 7 == 0 { '*' } else { b as char };
+            let ch = if b.is_multiple_of(4) {
+                ':'
+            } else if b.is_multiple_of(7) {
+                '*'
+            } else {
+                b as char
+            };
             let _ = s.write_char(ch);
         }
         s

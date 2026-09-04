@@ -134,7 +134,7 @@ fn connect_handshake_button(app_data: Rc<AppData>) {
                                 None
                             });
 
-                        app_data.decrypt_gui.handshake_entry.set_text(file_path);
+                        app_data.decrypt_gui.handshake_entry.set_text(file_path.as_str());
 
                         update_decrypt_button_status(app_data);
                     }
@@ -280,7 +280,7 @@ fn connect_wordlist_button(app_data: Rc<AppData>) {
                             None => return,
                         };
                         if let Some(text) = gio_file.path().and_then(|p| p.to_str().map(str::to_string)) {
-                app_data.decrypt_gui.wordlist_entry.set_text(text);
+                app_data.decrypt_gui.wordlist_entry.set_text(text.as_str());
             }
 
                         update_decrypt_button_status(app_data);

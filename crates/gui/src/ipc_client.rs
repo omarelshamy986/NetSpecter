@@ -433,7 +433,9 @@ mod tests {
         });
         let client = IpcClient::with_path(path);
         client.connect().unwrap();
-        let err = client.harvest_pmkid("aa:bb:cc:dd:ee:ff", "X", 1).unwrap_err();
+        let err = client
+            .harvest_pmkid("aa:bb:cc:dd:ee:ff", "X", 1)
+            .unwrap_err();
         match err {
             IpcError::AgentError(m) => assert_eq!(m, "PMKID harvest timed out"),
             other => panic!("unexpected error: {other:?}"),
@@ -446,7 +448,9 @@ mod tests {
         let client = IpcClient::with_path(path);
         client.connect().unwrap();
         // harvest_pmkid expects Response::PmkidCapture, but the mock returns Ok.
-        let err = client.harvest_pmkid("aa:bb:cc:dd:ee:ff", "X", 1).unwrap_err();
+        let err = client
+            .harvest_pmkid("aa:bb:cc:dd:ee:ff", "X", 1)
+            .unwrap_err();
         assert!(matches!(err, IpcError::UnexpectedResponse));
     }
 }
