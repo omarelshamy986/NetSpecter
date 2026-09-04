@@ -22,7 +22,7 @@ fn main() {
 
     // Optional cosmetic setting — missing schemas (flatpak-style setups) must not
     // abort startup over an icon-theme name.
-    if let Ok(settings) = Settings::default() {
+    if let Some(settings) = Settings::default() {
         settings.set_gtk_icon_theme_name(Some("Adwaita"));
     } else {
         log::warn!("gtk Settings schema unavailable — keeping the default icon theme");

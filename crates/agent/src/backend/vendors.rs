@@ -9,7 +9,7 @@
 //! polls do no extra work. The lookup is a handful of hashmap probes, so no
 //! background thread is needed.
 
-use crate::globals::VENDORS_CACHE;
+use crate::globals::{VENDORS_CACHE, lock_ok};
 
 use std::collections::HashMap;
 

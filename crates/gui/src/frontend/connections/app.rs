@@ -336,11 +336,7 @@ fn connect_about_button(app_data: Rc<AppData>) {
                 .authors(vec!["Martin OLIVIER (martin.olivier@live.fr)".to_string()])
                 .copyright("Copyright (c) Martin OLIVIER")
                 .license_type(License::MitX11)
-                .logo(
-                    icon.as_ref()
-                        .and_then(|i| Picture::for_pixbuf(i).paintable())
-                        .as_ref(),
-                )
+                .logo(icon.as_ref().and_then(|i| Picture::for_pixbuf(i).paintable()))
                 .comments(desc)
                 .website_label("https://github.com/martin-olivier/netspecter")
                 .transient_for(&app_data.app_gui.window)
@@ -1014,6 +1010,7 @@ fn connect_capture_button(app_data: Rc<AppData>) {
                         else {
                             return ErrorDialog::spawn(
                                 &app_data.app_gui.window,
+                                "Unsupported path",
                                 "The chosen path is not representable as text on this system.",
                             );
                         };

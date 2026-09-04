@@ -302,4 +302,34 @@ mod tests {
             assert_eq!(m[0] & 0x02, 0x02);
         }
     }
+
+
+    // ── Fuzz-style robustness: hostile EAPOL-M1 bytes must never panic ──
+    fn lcg(seed: u64) -> impl Iterator<Item = u64> {
+        let mut s = seed;
+        std::iter::from_fn(move || {
+            s = s.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            Some(s)
+        })
+    }
+
+    #[test]
+    fn fuzz_extract_pmkid_from_m1_random() {
+        for seed in 0..64u64 {
+            let raw: Vec<u8> = lcg(seed)
+                .map(|x| (x >> 33) as u8)
+                .take(200)
+                .collect();
+            // Must return Some/None, never panic.
+            let _ = extract_pmkid_from_m1(&raw);
+        }
+    }
+
+    #[test]
+    fn fuzz_extract_pmkid_truncations() {
+        let base: Vec<u8> = lcg(42).map(|x| (x >> 33) as u8).take(120).collect();
+        for cut in 0..base.len() {
+            let _ = extract_pmkid_from_m1(&base[..cut]);
+        }
+    }
 }

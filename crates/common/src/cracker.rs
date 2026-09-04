@@ -581,4 +581,48 @@ ETA.until 2026-09-01T12:00:00
         assert!(serde_json::to_string(&CrackJobStatus::Queued).unwrap().contains("queued"));
         assert!(serde_json::to_string(&CrackJobStatus::Cracked).unwrap().contains("cracked"));
     }
+
+
+    // ── Fuzz-style robustness: hostile tool output / hashfile text must never panic ──
+    fn lcg(seed: u64) -> impl Iterator<Item = u64> {
+        let mut s = seed;
+        std::iter::from_fn(move || {
+            s = s.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            Some(s)
+        })
+    }
+
+    fn fuzz_text(seed: u64, len: usize) -> String {
+        use std::fmt::Write;
+        let mut s = String::new();
+        for x in lcg(seed).take(len) {
+            // Mixed control chars, colons, stars — the separators the parsers slice on.
+            let b = (x >> 33) as u8;
+            let ch = if b % 4 == 0 { ':' } else if b % 7 == 0 { '*' } else { b as char };
+            let _ = s.write_char(ch);
+        }
+        s
+    }
+
+    #[test]
+    fn fuzz_parse_hashcat_status_garbage() {
+        for seed in 0..64u64 {
+            let _ = parse_hashcat_status(&fuzz_text(seed, 400));
+        }
+    }
+
+    #[test]
+    fn fuzz_parse_recovered_line_garbage() {
+        for seed in 0..64u64 {
+            let _ = parse_recovered_line(&fuzz_text(seed, 200));
+        }
+    }
+
+    #[test]
+    fn fuzz_parse_recovered_line_truncations() {
+        let base = fuzz_text(5, 150);
+        for cut in 0..base.len() {
+            let _ = parse_recovered_line(&base[..cut]);
+        }
+    }
 }

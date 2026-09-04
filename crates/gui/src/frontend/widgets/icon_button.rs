@@ -13,9 +13,9 @@ use std::io::BufReader;
 fn pixbuf_or_blank(icon: &'static [u8]) -> Pixbuf {
     Pixbuf::from_read(BufReader::new(icon)).unwrap_or_else(|_| {
         log::warn!("failed to decode an embedded icon — using a blank one");
-        Pixbuf::new(gtk4::gdk::Colorspace::Rgb, true, 8, 1, 1).unwrap_or_else(|| {
+        Pixbuf::new(gtk4::gdk_pixbuf::Colorspace::Rgb, true, 8, 1, 1).unwrap_or_else(|| {
             // 1x1 RGBA cannot fail to allocate in practice; this is the last resort.
-            Pixbuf::new(gtk4::gdk::Colorspace::Rgb, false, 8, 1, 1)
+            Pixbuf::new(gtk4::gdk_pixbuf::Colorspace::Rgb, false, 8, 1, 1)
                 .expect("allocating a 1x1 pixbuf")
         })
     })

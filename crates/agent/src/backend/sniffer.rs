@@ -573,4 +573,55 @@ mod tests {
         assert_eq!(plan_channel(&[1, 6, 11], &mut idx, 6, true), Some(1));
         assert_eq!(idx, 0);
     }
+
+
+    // ── Fuzz-style robustness: malformed on-air bytes must never panic ──
+    // Deterministic byte streams (seeded LCG): no nightly/libFuzzer needed, runs
+    // in the plain `cargo test` CI job. Every parser below eats raw air, so a
+    // hostile AP must not be able to crash the capture thread.
+
+    fn lcg(seed: u64) -> impl Iterator<Item = u64> {
+        let mut s = seed;
+        std::iter::from_fn(move || {
+            s = s.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            Some(s)
+        })
+    }
+
+    fn fuzz_bytes(seed: u64, len: usize) -> Vec<u8> {
+        lcg(seed).map(|x| (x >> 33) as u8).take(len).collect()
+    }
+
+    #[test]
+    fn fuzz_process_frame_random_bytes() {
+        // Radiotap parse fails → early return. Still must not panic.
+        for seed in 0..64u64 {
+            for len in [0, 1, 8, 64, 256, 1024] {
+                let raw = fuzz_bytes(seed.wrapping_mul(1000) + len as u64, len);
+                process_frame(&raw, 6);
+            }
+        }
+    }
+
+    #[test]
+    fn fuzz_process_frame_valid_radiotap_garbage_body() {
+        // Minimal valid radiotap header (version 0, one present-flags word)
+        // followed by random body bytes — exercises the libwifi edge too.
+        let header = [0x00u8, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00];
+        for seed in 0..64u64 {
+            let mut raw = header.to_vec();
+            raw.extend(fuzz_bytes(seed, 120));
+            process_frame(&raw, 6);
+        }
+    }
+
+    #[test]
+    fn fuzz_process_frame_truncations() {
+        // A plausible-looking frame chopped at every length: parsers must
+        // reject the short reads, not index-panic.
+        let base = fuzz_bytes(7, 300);
+        for cut in 0..base.len() {
+            process_frame(&base[..cut], 6);
+        }
+    }
 }

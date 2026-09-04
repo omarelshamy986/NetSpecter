@@ -200,7 +200,7 @@ mod tests {
 
     #[test]
     fn parse_extracts_public_key() {
-        let pk = vec![0xab; 192];
+        let pk = [0xab; 192];
         let msg = parse(&tlv(0x104A, &pk)).unwrap();
         assert!(msg.public_key.is_some());
         assert_eq!(msg.public_key.unwrap()[0], 0xab);
@@ -267,9 +267,9 @@ mod tests {
         // Bind the vectors first: &[..][..] inside the entries vec
         // creates temporaries that are freed at the end of the statement,
         // while `build(&entries)` still borrows them (E0716).
-        let big = vec![0xab; 192];
-        let mid = vec![0xcd; 16];
-        let small = vec![0xef; 8];
+        let big = [0xab; 192];
+        let mid = [0xcd; 16];
+        let small = [0xef; 8];
         let entries = vec![
             (0x104Au16, &big[..]),
             (0x101Eu16, &mid[..]),
@@ -284,7 +284,7 @@ mod tests {
 
     #[test]
     fn parsed_exchange_requires_both_messages() {
-        let pk = vec![0xab; 192];
+        let pk = [0xab; 192];
         let m1 = build(&[(0x104A, &pk[..]), (0x101E, &[0x02; 16][..])]);
         let m3 = build(&[
             (0x1018, &[0x03; 8][..]),
@@ -297,7 +297,7 @@ mod tests {
 
     #[test]
     fn parsed_exchange_incomplete_when_m3_missing_hashes() {
-        let pk = vec![0xab; 192];
+        let pk = [0xab; 192];
         let m1 = build(&[(0x104A, &pk[..]), (0x101E, &[0x02; 16][..])]);
         let m3 = build(&[(0x1018, &[0x03; 8][..])]); // no E-Hash1/E-Hash2
         let ex = ParsedExchange::parse(&m1, &m3).unwrap();
