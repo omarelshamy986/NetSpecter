@@ -74,6 +74,25 @@ static KNOWN_MODELS: &[KnownModel] = &[
     KnownModel { ouis: &["3039F2", "74888B", "A4526F", "DC0B1A"], vendor: "ADB Broadband", models: "PDG-A4001N (WLAN-XXXX)", static_pin: Some("00290470"), offsets: &[] },
     KnownModel { ouis: &["3039F2", "74888B", "A4526F", "DC0B1A"], vendor: "ADB Broadband", models: "PDG-A4001N (WLAN-XXXX)", static_pin: Some("12349810"), offsets: &[] },
     KnownModel { ouis: &["3039F2", "74888B", "A4526F", "DC0B1A"], vendor: "ADB Broadband", models: "PDG-A4001N (WLAN-XXXX)", static_pin: Some("58701432"), offsets: &[] },
+    // Arcadyan/EasyBox family (Wotan/Viehböck/Coeman76 algorithm — see arcadyan_pin)
+    KnownModel { ouis: &["1CC63C", "507E5D", "743170", "849CA6", "880355"], vendor: "Arcadyan", models: "EasyBox 802/803/904, ARV7510PW22 (Vodafone/Arcor/Orange)", static_pin: None, offsets: &[] },
+    // kcdtv wave 2 static PINs
+    KnownModel { ouis: &["B8A386"], vendor: "D-Link", models: "DSL-2730U", static_pin: Some("20172527"), offsets: &[] },
+    KnownModel { ouis: &["C8D3A3"], vendor: "D-Link", models: "DSL-2750U", static_pin: Some("21464065"), offsets: &[] },
+    KnownModel { ouis: &["F81BFA", "F8ED80"], vendor: "ZTE", models: "ZXHN H108N", static_pin: Some("12345670"), offsets: &[] },
+    KnownModel { ouis: &["E4C146"], vendor: "Observa Telecom", models: "RTA01N Fase2", static_pin: Some("71537573"), offsets: &[] },
+    KnownModel { ouis: &["C8D15E"], vendor: "Huawei (kcdtv Jazztel)", models: "HG532c Echo Life — Jazztel_XX", static_pin: None, offsets: &[8, 14] },
+    // ADB PDG-A4001N — extended generic PIN set (kcdtv wave 2, OUI D0D412)
+    KnownModel { ouis: &["D0D412"], vendor: "ADB Broadband", models: "PDG-A4001N (WLAN-XXXX)", static_pin: Some("16538061"), offsets: &[] },
+    KnownModel { ouis: &["D0D412"], vendor: "ADB Broadband", models: "PDG-A4001N (WLAN-XXXX)", static_pin: Some("16702738"), offsets: &[] },
+    KnownModel { ouis: &["D0D412"], vendor: "ADB Broadband", models: "PDG-A4001N (WLAN-XXXX)", static_pin: Some("18355604"), offsets: &[] },
+    KnownModel { ouis: &["D0D412"], vendor: "ADB Broadband", models: "PDG-A4001N (WLAN-XXXX)", static_pin: Some("88202907"), offsets: &[] },
+    KnownModel { ouis: &["D0D412"], vendor: "ADB Broadband", models: "PDG-A4001N (WLAN-XXXX)", static_pin: Some("73767053"), offsets: &[] },
+    KnownModel { ouis: &["D0D412"], vendor: "ADB Broadband", models: "PDG-A4001N (WLAN-XXXX)", static_pin: Some("43297917"), offsets: &[] },
+    KnownModel { ouis: &["D0D412"], vendor: "ADB Broadband", models: "PDG-A4001N (WLAN-XXXX)", static_pin: Some("19756967"), offsets: &[] },
+    KnownModel { ouis: &["D0D412"], vendor: "ADB Broadband", models: "PDG-A4001N (WLAN-XXXX)", static_pin: Some("13409708"), offsets: &[] },
+    // kcdtv wave 2 ComputePIN families (Orange HG530s Huawei, Samsung Bbox, etc.)
+    KnownModel { ouis: &["087A4C", "0C96BF", "E8CD2D", "A0F3C1", "EC233D", "F81A67", "6296BF", "62CBA8", "6A1D67", "6ACBA8", "7296BF", "72CBA8"], vendor: "Various (ComputePIN)", models: "Orange HG530s, Bbox, Ono & OEM", static_pin: None, offsets: &[] },
 ];
 
 /// Parse a BSSID of any common shape (`aa:bb:cc:dd:ee:ff`, `AABBCCDDEEFF`,
@@ -154,6 +173,14 @@ pub fn default_pin_candidates(bssid: &str, essid: &str) -> Vec<DefaultPinCandida
                 push_unique(&mut out, DefaultPinCandidate { pin, source: "kcdtv FTE-XXXX (ESSID-keyed)" });
             }
         }
+        // Arcadyan family: dedicated algorithm, ESSID-independent.
+        if model.models.starts_with("EasyBox") || model.vendor == "Arcadyan" {
+            push_unique(&mut out, DefaultPinCandidate {
+                pin: arcadyan_pin(&mac),
+                source: "Arcadyan/EasyBox (Wotan-Viehböck-Coeman76)",
+            });
+            continue;
+        }
         // ComputePIN + documented offsets.
         if model.static_pin.is_none() {
             push_unique(&mut out, DefaultPinCandidate {
@@ -182,6 +209,63 @@ pub fn default_pin_candidates(bssid: &str, essid: &str) -> Vec<DefaultPinCandida
         out.push(DefaultPinCandidate { pin: "00000000".into(), source: "generic NULL PIN" });
     }
     out
+}
+
+/// Arcadyan / EasyBox / Vodafone-XXXX PIN algorithm
+/// (Wotan/Viehböck/Coeman76, via kcdtv's WPSPIN — GPL sources).
+///
+/// The PIN base is built from XOR combinations of the BSSID's last two
+/// bytes and their decimal rendering:
+///   deci = last-4-hex-digits of BSSID rendered as 4 decimal digits
+///   hexi = the two bytes split into nibbles
+///   K1   = (deci0 + deci1 + hexi2 + hexi3) % 16
+///   K2   = (hexi0 + hexi1 + deci2 + deci3) % 16
+///   X1..X3, Y1..Y3, Z1..Z2 = XOR cross-products
+///   base = (X1X2Y1Y2Z1Z2X3 as hex) % 1e7
+/// Covers EasyBox 802/803/904, Arcor, Vodafone (incl. Egyptian ISP units),
+/// Orange/ONO Arcadyan variants.
+fn arcadyan_pin(mac: &[u8; 6]) -> String {
+    // Last 4 hex digits of the BSSID, rendered in decimal, zero-padded to 4.
+    let last4 = ((mac[4] as u32) << 8) | mac[5] as u32; // 0..=65535
+    // The original uses `printf %04d` on the hex value: e.g. 0xABCD -> 43981 -> "43981", last 4 chars.
+    let deci_str = format!("{last4:04}"); // decimal, at least 4 digits
+    let d: [u32; 4] = {
+        let cs: Vec<u32> = deci_str
+            .chars()
+            .rev()
+            .take(4)
+            .map(|c| c.to_digit(10).unwrap_or(0))
+            .collect();
+        // deci[0..4] in the original = the 4 digits, in order; if the string is
+        // longer than 4 (>= 10000 can't happen: max 65535 -> 5 chars max), take last 4.
+        let mut arr = [0u32; 4];
+        let n = cs.len().min(4);
+        for i in 0..n {
+            arr[3 - i] = cs[i];
+        }
+        arr
+    };
+    let h: [u32; 4] = [ (mac[4] >> 4) as u32, (mac[4] & 0xF) as u32, (mac[5] >> 4) as u32, (mac[5] & 0xF) as u32 ];
+    let k1 = (d[0] + d[1] + h[2] + h[3]) & 0xF;
+    let k2 = (h[0] + h[1] + d[2] + d[3]) & 0xF;
+    let x1 = k1 ^ d[3];
+    let x2 = k1 ^ d[2];
+    let x3 = k1 ^ d[1];
+    let y1 = k2 ^ h[1];
+    let y2 = k2 ^ h[2];
+    let z1 = h[2] ^ d[3];
+    let z2 = h[3] ^ d[2];
+    // The original: hex digits X1 X2 Y1 Y2 Z1 Z2 X3 -> hex number -> decimal % 1e7.
+    let hex_str = format!("{x1:X}{x2:X}{y1:X}{y2:X}{z1:X}{z2:X}{x3:X}");
+    let value = u32::from_str_radix(&hex_str, 16).unwrap_or(0) % 10_000_000;
+    let mut pin7 = format!("{value:07}");
+    let mut digits = [0u8; 7];
+    for (i, b) in pin7.bytes().enumerate() {
+        digits[i] = b;
+    }
+    let checksum = compute_wps_checksum(&digits);
+    pin7.push((checksum + b'0') as char);
+    pin7
 }
 
 fn push_unique(out: &mut Vec<DefaultPinCandidate>, cand: DefaultPinCandidate) {
@@ -263,6 +347,20 @@ mod tests {
         for c in &cands {
             assert!(seen.insert(c.pin.clone()), "duplicate pin {}", c.pin);
         }
+    }
+
+    #[test]
+    fn arcadyan_easybox_matches_canonical_algorithm() {
+        // Canonical vector from Viehböck's easybox_wps.py: 38:22:9D:11:22:33 → 8413147
+        // (kcdtv's shell variant renders the same base zero-padded: 08413147).
+        let mac = parse_bssid("38:22:9D:11:22:33").unwrap();
+        let pin = arcadyan_pin(&mac);
+        assert_eq!(pin, "08413147");
+        // All hex-digit inputs, any BSSID shape
+        let mac2 = parse_bssid("1C:C6:3C:AB:CD:EF").unwrap();
+        let pin2 = arcadyan_pin(&mac2);
+        assert_eq!(pin2.len(), 8);
+        assert!(pin2.chars().all(|c| c.is_ascii_digit()));
     }
 
     #[test]
