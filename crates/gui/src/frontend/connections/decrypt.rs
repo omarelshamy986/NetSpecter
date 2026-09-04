@@ -106,7 +106,7 @@ fn connect_handshake_button(app_data: Rc<AppData>) {
                             return;
                         };
 
-                        let handshakes = backend::get_handshakes([file_path]).unwrap_or_default();
+                        let handshakes = backend::get_handshakes([file_path.clone()]).unwrap_or_default();
 
                         if handshakes.is_empty() {
                             return ErrorDialog::spawn(

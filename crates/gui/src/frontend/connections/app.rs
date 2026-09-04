@@ -330,19 +330,21 @@ fn connect_about_button(app_data: Rc<AppData>) {
             let icon = Pixbuf::from_read(BufReader::new(globals::APP_ICON)).ok();
             let desc = "A WiFi security auditing software mainly based on aircrack-ng tools suite";
 
-            AboutDialog::builder()
+            let dialog = AboutDialog::builder()
                 .program_name("NetSpecter")
                 .version(globals::VERSION)
                 .authors(vec!["Martin OLIVIER (martin.olivier@live.fr)".to_string()])
                 .copyright("Copyright (c) Martin OLIVIER")
                 .license_type(License::MitX11)
-                .logo(icon.as_ref().and_then(|i| Picture::for_pixbuf(i).paintable()).as_ref())
                 .comments(desc)
                 .website_label("https://github.com/martin-olivier/netspecter")
                 .transient_for(&app_data.app_gui.window)
                 .modal(true)
-                .build()
-                .show();
+                .build();
+            // Logo set post-build: the setter takes Option<&Paintable> cleanly, and a
+            // decode failure just leaves the dialog logo-less instead of crashing.
+            dialog.set_logo(icon.as_ref().and_then(|i| Picture::for_pixbuf(i).paintable()));
+            dialog.show();
         }
     ));
 }
