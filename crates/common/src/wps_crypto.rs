@@ -258,10 +258,10 @@ mod tests {
 
     #[test]
     fn wps_checksum_for_all_nines() {
-        // 9*(1+2+3+4+5+6+7) = 9 * 28 = 252 → 252 mod 10 = 2
+        // Spec: 9*(3+1+3+1+3+1+3) = 9 * 15 = 135 → 135 mod 10 = 5 → complement 10-5 = 5
         let pin7 = *b"9999999";
-        assert_eq!(compute_wps_checksum(&pin7), 2);
-        assert_eq!(build_full_pin(&pin7).as_deref(), Some("99999992"));
+        assert_eq!(compute_wps_checksum(&pin7), 5);
+        assert_eq!(build_full_pin(&pin7).as_deref(), Some("99999995"));
     }
 
     #[test]
