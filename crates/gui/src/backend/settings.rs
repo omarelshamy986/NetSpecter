@@ -34,7 +34,7 @@ pub fn load_settings() {
 
     log::debug!("settings loaded");
 
-    *SETTINGS.lock().unwrap() = settings;
+    *lock_ok(&SETTINGS) = settings;
 }
 
 /// Save settings to the user config file.
@@ -53,10 +53,10 @@ pub fn save_settings(mut settings: Settings) {
         }
     }
 
-    *SETTINGS.lock().unwrap() = settings;
+    *lock_ok(&SETTINGS) = settings;
 }
 
 /// Get the current settings.
 pub fn get_settings() -> Settings {
-    SETTINGS.lock().unwrap().clone()
+    lock_ok(&SETTINGS).clone()
 }

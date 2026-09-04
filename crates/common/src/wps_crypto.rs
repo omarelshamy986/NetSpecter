@@ -104,7 +104,7 @@ pub fn candidate_auth_key(
     shared_secret: &[u8; 32],
 ) -> [u8; 32] {
     type HmacSha256 = hmac::Hmac<sha2::Sha256>;
-    let mut mac = HmacSha256::new_from_slice(shared_secret).expect("HMAC accepts any key length");
+    let mut mac = HmacSha256::new_from_slice(shared_secret).expect("HMAC-SHA accepts any key length (infallible by construction)");
     mac.update(psk_half);
     let full = mac.finalize().into_bytes();
     let mut out = [0u8; 32];
@@ -119,7 +119,7 @@ pub fn candidate_auth_key(
 /// (second-half PIN check).
 pub fn compute_e_hash(auth_key: &[u8; 32], selector: u8) -> [u8; 20] {
     type HmacSha1 = Hmac<Sha1>;
-    let mut mac = HmacSha1::new_from_slice(auth_key).expect("HMAC accepts any key length");
+    let mut mac = HmacSha1::new_from_slice(auth_key).expect("HMAC-SHA accepts any key length (infallible by construction)");
     mac.update(&[selector]);
     let full = mac.finalize().into_bytes();
     let mut out = [0u8; 20];

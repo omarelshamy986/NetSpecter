@@ -118,7 +118,9 @@ fn connect_export_button(app_data: Rc<AppData>) {
                             Some(file) => file,
                             None => return,
                         };
-                        let path = gio_file.path().unwrap().to_str().unwrap().to_string();
+                        let Some(path) = gio_file.path().and_then(|p| p.to_str().map(str::to_string)) else {
+                            return;
+                        };
 
                         if let Err(e) = backend::save_capture(&path) {
                             if was_scanning {
@@ -178,7 +180,12 @@ fn connect_report_button(app_data: Rc<AppData>) {
                             None => return,
                         };
 
-                        let path = gio_file.path().unwrap().to_str().unwrap().to_string();
+                        let Some(path) = gio_file
+                            .path()
+                            .and_then(|p| p.to_str().map(str::to_string))
+                        else {
+                            return;
+                        };
 
                         if let Err(e) = backend::save_report(&path) {
                             return ErrorDialog::spawn(

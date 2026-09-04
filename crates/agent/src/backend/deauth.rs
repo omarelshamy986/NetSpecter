@@ -131,7 +131,7 @@ pub fn stop_all_deauth_attacks() {
 
 /// Get the attack pool
 pub fn get_attack_pool() -> MutexGuard<'static, AttackPool> {
-    ATTACK_POOL.lock().unwrap()
+    lock_ok(&ATTACK_POOL)
 }
 
 /// Project the live attack pool onto its serializable wire representation.

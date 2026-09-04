@@ -57,6 +57,17 @@ pub struct IpcClient {
 }
 
 impl IpcClient {
+    /// Lock the stream slot, surviving a poisoned mutex.
+    ///
+    /// The socket state is replaceable (reconnect re-establishes it), so a
+    /// panic elsewhere must not take every future IPC call down with it.
+    fn lock_stream(&self) -> std::sync::MutexGuard<'_, Option<std::os::unix::net::UnixStream>> {
+        match self.stream.lock() {
+            Ok(g) => g,
+            Err(poisoned) => poisoned.into_inner(),
+        }
+    }
+
     /// Create a client handle pointing at the agent's socket. The client
     /// is initially disconnected; call `connect()` to open the stream.
     pub fn new(uid: u32, instance: u32) -> Self {
@@ -77,7 +88,7 @@ impl IpcClient {
 
     /// Open the socket and send the `Hello` handshake. Idempotent.
     pub fn connect(&self) -> Result<(), IpcError> {
-        let mut guard = self.stream.lock().expect("IpcClient mutex poisoned");
+        let mut guard = self.lock_stream();
         if guard.is_some() {
             return Ok(());
         }
@@ -88,8 +99,14 @@ impl IpcClient {
 
         // Handshake.
         let version = netspecter_common::VERSION.to_string();
-        write_msg(guard.as_mut().unwrap(), &Request::Hello { version })?;
-        let response: Response = read_msg(guard.as_mut().unwrap())?;
+        let stream_ref = guard
+            .as_mut()
+            .ok_or_else(|| IpcError::Io(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "the IPC stream slot was cleared",
+            )))?;
+        write_msg(stream_ref, &Request::Hello { version })?;
+        let response: Response = read_msg(stream_ref)?;
         match response {
             Response::Setup { .. } => Ok(()),
             Response::Error { message } => Err(IpcError::AgentError(message)),
@@ -99,7 +116,7 @@ impl IpcClient {
 
     /// Close the underlying socket, if open.
     pub fn disconnect(&self) {
-        let mut guard = self.stream.lock().expect("IpcClient mutex poisoned");
+        let mut guard = self.lock_stream();
         if let Some(stream) = guard.take() {
             let _ = stream.shutdown(std::net::Shutdown::Both);
         }
@@ -107,9 +124,7 @@ impl IpcClient {
 
     /// True if the underlying socket is currently open.
     pub fn is_connected(&self) -> bool {
-        self.stream
-            .lock()
-            .expect("IpcClient mutex poisoned")
+        self.lock_stream()
             .is_some()
     }
 
@@ -124,7 +139,7 @@ impl IpcClient {
     /// response-variant unpacking, so pages never have to match on the
     /// enum themselves.
     pub fn call(&self, req: Request) -> Result<Response, IpcError> {
-        let mut guard = self.stream.lock().expect("IpcClient mutex poisoned");
+        let mut guard = self.lock_stream();
         let stream = guard.as_mut().ok_or(IpcError::Disconnected)?;
         write_msg(stream, &req)?;
         let resp: Response = read_msg(stream)?;

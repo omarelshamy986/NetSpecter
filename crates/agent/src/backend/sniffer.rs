@@ -90,7 +90,7 @@ pub fn run(
     let mut last_hop = Instant::now();
 
     // Tune to the first channel up front.
-    if let Some(&channel) = channels.lock().unwrap().first() {
+    if let Some(&channel) = channels.lock().unwrap_or_else(|p| p.into_inner()).first() {
         current_channel = channel;
         channel_out.store(channel, Ordering::Relaxed);
         set_channel(&iface, channel);
@@ -103,7 +103,7 @@ pub fn run(
         // held only to decide; the slow `set_channel` runs without it.
         let hop_due = last_hop.elapsed() >= HOP_INTERVAL;
         let retune = {
-            let channels = channels.lock().unwrap();
+            let channels = channels.lock().unwrap_or_else(|p| p.into_inner());
             plan_channel(&channels, &mut chan_idx, current_channel, hop_due)
         };
         if let Some(channel) = retune {
@@ -380,8 +380,11 @@ fn record_client(station: &str, bssid: Option<&str>, signal: Option<i32>, probe:
     };
 
     if let Some(bssid) = target {
-        let ap = aps.get_mut(&bssid).expect("target AP present");
-        upsert_client(&mut ap.clients, station, &power, &vendor, &now, probe);
+        // `target` was derived from `aps` keys above, so this is Some in practice;
+        // a race that removed it must drop the frame, not kill the capture thread.
+        if let Some(ap) = aps.get_mut(&bssid) {
+            upsert_client(&mut ap.clients, station, &power, &vendor, &now, probe);
+        }
         drop(aps);
         get_unlinked_clients().remove(station);
         return;

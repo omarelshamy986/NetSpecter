@@ -26,6 +26,10 @@ pub fn build_ui(app: &Application) {
 #[macro_export]
 macro_rules! list_store_get {
     ($storage:expr,$iter:expr,$pos:expr,$typ:ty) => {
-        $storage.get_value($iter, $pos).get::<$typ>().unwrap()
+        // Column type mismatch must not crash the GUI — default value instead.
+        $storage
+            .get_value($iter, $pos)
+            .get::<$typ>()
+            .unwrap_or_default()
     };
 }

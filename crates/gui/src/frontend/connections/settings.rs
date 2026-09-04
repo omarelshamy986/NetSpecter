@@ -62,7 +62,10 @@ fn connect_specific_mac_button(app_data: Rc<AppData>) {
 fn connect_mac_entry(app_data: Rc<AppData>) {
     app_data.settings_gui.mac_entry.connect_text_notify(
         clone!(#[strong] app_data, move |this| {
-            let mac_regex = Regex::new(r"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})|([0-9a-fA-F]{4}\\.[0-9a-fA-F]{4}\\.[0-9a-fA-F]{4})$").unwrap();
+                        // Compiled-pattern failure cannot happen for this constant, but a
+            // validation regex must never crash the settings dialog — fall back
+            // to accepting everything (no validation) on the impossible path.
+            let mac_regex = Regex::new(r"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})|([0-9a-fA-F]{4}\\.[0-9a-fA-F]{4}\\.[0-9a-fA-F]{4})$").unwrap_or_else(|_| Regex::new("^.*$").expect("trivially valid regex"));
             let entry = this.text().to_string();
 
             match mac_regex.is_match(&entry) {

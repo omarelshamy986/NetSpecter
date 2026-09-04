@@ -21,14 +21,12 @@ pub enum ScanError {
 
 /// Check if a scan is currently running
 pub fn is_scan_process() -> bool {
-    SCAN_HANDLE.lock().unwrap().is_some()
+    lock_ok(&SCAN_HANDLE).is_some()
 }
 
 /// The channel the running capture thread is currently tuned to
 pub fn current_channel() -> Option<u32> {
-    SCAN_HANDLE
-        .lock()
-        .unwrap()
+    lock_ok(&SCAN_HANDLE)
         .as_ref()
         .map(|handle| handle.channel.load(Ordering::Relaxed))
         .filter(|channel| *channel != 0)
@@ -53,12 +51,12 @@ pub fn set_scan_process(
     let channels = sniffer::build_channel_list(ghz_2_4, ghz_5, channel_filter.as_deref());
 
     // Adapt a scan already running on this interface by swapping its channel plan.
-    let running = match SCAN_HANDLE.lock().unwrap().as_ref() {
+    let running = match lock_ok(&SCAN_HANDLE).as_ref() {
         Some(handle) if handle.iface == iface => Some(handle.channels.clone()),
         _ => None,
     };
     if let Some(running) = running {
-        *running.lock().unwrap() = channels;
+        *running.lock().unwrap_or_else(|p| p.into_inner()) = channels;
         log::info!(
             "scan updated: 2.4ghz: {ghz_2_4}, 5ghz: {ghz_5}, channel filter: {channel_filter:?}"
         );
@@ -79,7 +77,7 @@ pub fn set_scan_process(
         sniffer::run(thread_iface, thread_channels, thread_channel, thread_stop);
     });
 
-    SCAN_HANDLE.lock().unwrap().replace(ScanHandle {
+    lock_ok(&SCAN_HANDLE).replace(ScanHandle {
         iface: iface.to_string(),
         channels,
         channel,
@@ -96,7 +94,7 @@ pub fn set_scan_process(
 
 /// Stop the capture thread and fold its capture into the accumulated one.
 pub fn stop_scan_process() -> Result<(), ScanError> {
-    let handle = SCAN_HANDLE.lock().unwrap().take();
+    let handle = lock_ok(&SCAN_HANDLE).take();
     if let Some(scan) = handle {
         scan.stop.store(true, Ordering::Relaxed);
         let _ = scan.handle.join();
@@ -161,11 +159,11 @@ pub fn get_airodump_data() -> HashMap<String, AP> {
 }
 
 pub fn get_aps() -> MutexGuard<'static, HashMap<String, AP>> {
-    APS.lock().unwrap()
+    lock_ok(&APS)
 }
 
 pub fn get_unlinked_clients() -> MutexGuard<'static, HashMap<String, Client>> {
-    UNLINKED_CLIENTS.lock().unwrap()
+    lock_ok(&UNLINKED_CLIENTS)
 }
 
 pub fn get_cap_ext() -> &'static str {

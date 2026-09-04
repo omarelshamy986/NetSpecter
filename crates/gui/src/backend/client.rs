@@ -47,7 +47,7 @@ lazy_static! {
 
 /// Send a request and get the raw response, or an error if the agent is gone.
 fn request(request: Request) -> Result<Response, AgentError> {
-    let mut guard = CLIENT.lock().unwrap();
+    let mut guard = lock_ok(&CLIENT);
     let client = guard
         .as_mut()
         .ok_or_else(|| AgentError("the privileged agent is not connected".to_string()))?;
@@ -108,7 +108,7 @@ pub fn init() -> Result<(), AgentError> {
 /// This is the single escalation point, it is called only when the user commits
 /// to a privileged action.
 pub fn ensure_agent() -> Result<(), AgentError> {
-    if CLIENT.lock().unwrap().is_some() {
+    if lock_ok(&CLIENT).is_some() {
         return Ok(());
     }
 
@@ -124,7 +124,7 @@ pub fn ensure_agent() -> Result<(), AgentError> {
 
     match connect_agent(&sock, &mut child) {
         Ok(stream) => {
-            *CLIENT.lock().unwrap() = Some(AgentClient {
+            *lock_ok(&CLIENT) = Some(AgentClient {
                 stream,
                 _child: child,
             });
@@ -166,7 +166,7 @@ fn connect_agent(sock: &str, child: &mut Child) -> Result<UnixStream, AgentError
 /// trigger cleanup agent-side (via socket EOF); sending `Shutdown` is the tidy
 /// path.
 pub fn app_cleanup() {
-    if let Some(mut client) = CLIENT.lock().unwrap().take() {
+    if let Some(mut client) = lock_ok(&CLIENT).take() {
         client.exchange(Request::Shutdown).ok();
     }
 }
@@ -280,11 +280,11 @@ pub fn disable_monitor_mode(iface: &str) -> Result<(), AgentError> {
 
 /// The currently selected monitor interface (GUI-side copy).
 pub fn get_iface() -> Option<String> {
-    IFACE.lock().unwrap().clone()
+    lock_ok(&IFACE).clone()
 }
 
 pub fn set_iface(iface: String) {
-    IFACE.lock().unwrap().replace(iface);
+    lock_ok(&IFACE).replace(iface);
 }
 
 // --------------------------------------------------------------------------
@@ -319,7 +319,7 @@ pub fn reset_scan_data() {
     get_aps().clear();
     get_unlinked_clients().clear();
     get_attack_pool().clear();
-    SAVED_HANDSHAKES.lock().unwrap().clear();
+    lock_ok(&SAVED_HANDSHAKES).clear();
 }
 
 /// Poll the agent for the current scan snapshot, refresh the local caches, and
@@ -328,7 +328,7 @@ pub fn get_airodump_data() -> HashMap<String, AP> {
     let response = match request(Request::GetScanData) {
         Ok(response) => response,
         Err(_) => {
-            *CURRENT_CHANNEL.lock().unwrap() = None;
+            *lock_ok(&CURRENT_CHANNEL) = None;
             return get_aps().clone();
         }
     };
@@ -343,11 +343,11 @@ pub fn get_airodump_data() -> HashMap<String, AP> {
         _ => return get_aps().clone(),
     };
 
-    *CURRENT_CHANNEL.lock().unwrap() = channel;
+    *lock_ok(&CURRENT_CHANNEL) = channel;
 
     // GUI-side enrichment: merge the saved-handshake overlay onto the snapshot.
     // Vendors are already resolved by the agent, so there is nothing else to fill.
-    let overlay = SAVED_HANDSHAKES.lock().unwrap().clone();
+    let overlay = lock_ok(&SAVED_HANDSHAKES).clone();
 
     let mut aps_map = HashMap::with_capacity(aps_vec.len());
     for mut ap in aps_vec {
@@ -375,26 +375,26 @@ pub fn get_airodump_data() -> HashMap<String, AP> {
 }
 
 pub fn get_aps() -> MutexGuard<'static, HashMap<String, AP>> {
-    APS.lock().unwrap()
+    lock_ok(&APS)
 }
 
 pub fn get_current_channel() -> Option<u32> {
-    *CURRENT_CHANNEL.lock().unwrap()
+    *lock_ok(&CURRENT_CHANNEL)
 }
 
 pub fn get_unlinked_clients() -> MutexGuard<'static, HashMap<String, Client>> {
-    UNLINKED_CLIENTS.lock().unwrap()
+    lock_ok(&UNLINKED_CLIENTS)
 }
 
 pub fn get_attack_pool() -> MutexGuard<'static, HashMap<String, AttackState>> {
-    ATTACK_POOL.lock().unwrap()
+    lock_ok(&ATTACK_POOL)
 }
 
 /// Record that every currently-captured handshake has been saved to `path`.
 /// Replaces the old direct mutation of the AP map so the mark survives the next
 /// snapshot refresh (it is stored in the GUI-side overlay).
 pub fn mark_handshakes_saved(path: &str) {
-    let mut overlay = SAVED_HANDSHAKES.lock().unwrap();
+    let mut overlay = lock_ok(&SAVED_HANDSHAKES);
     let mut aps = get_aps();
 
     for (bssid, ap) in aps.iter_mut() {

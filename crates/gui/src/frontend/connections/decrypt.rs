@@ -54,7 +54,7 @@ fn update_decrypt_button_status(app_data: Rc<AppData>) {
         return app_data.decrypt_gui.decrypt_but.set_sensitive(false);
     }
 
-    let stack = app_data.decrypt_gui.stack.visible_child_name().unwrap();
+    let stack = app_data.decrypt_gui.stack.visible_child_name().as_deref().unwrap_or("");
 
     if stack == "dictionary" {
         if app_data.decrypt_gui.wordlist_entry.text_length() == 0 {
@@ -102,8 +102,9 @@ fn connect_handshake_button(app_data: Rc<AppData>) {
                             None => return,
                         };
 
-                        let gio_path = gio_file.path().unwrap();
-                        let file_path = gio_path.to_str().unwrap();
+                        let Some(file_path) = gio_file.path().and_then(|p| p.to_str()) else {
+                            return;
+                        };
 
                         let handshakes = backend::get_handshakes([file_path]).unwrap_or_default();
 
@@ -278,10 +279,9 @@ fn connect_wordlist_button(app_data: Rc<AppData>) {
                             Some(file) => file,
                             None => return,
                         };
-                        app_data
-                            .decrypt_gui
-                            .wordlist_entry
-                            .set_text(gio_file.path().unwrap().to_str().unwrap());
+                        if let Some(text) = gio_file.path().and_then(|p| p.to_str()) {
+                app_data.decrypt_gui.wordlist_entry.set_text(text);
+            }
 
                         update_decrypt_button_status(app_data);
                     }
@@ -354,7 +354,7 @@ fn connect_decrypt_button(app_data: Rc<AppData>) {
             let bssid = list_store_get!(app_data.decrypt_gui.target_model, &iter, 0, String);
             let essid = list_store_get!(app_data.decrypt_gui.target_model, &iter, 1, String);
 
-            let stack = app_data.decrypt_gui.stack.visible_child_name().unwrap();
+            let stack = app_data.decrypt_gui.stack.visible_child_name().as_deref().unwrap_or("");
 
             if stack == "bruteforce" && !backend::deps::is_installed(backend::deps::CRUNCH) {
                 let err_msg = "\"crunch\" is not installed on your system, could not generate a wordlist from a charset";

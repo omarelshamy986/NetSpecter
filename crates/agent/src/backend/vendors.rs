@@ -20,7 +20,7 @@ include!(concat!(env!("OUT_DIR"), "/vendors.rs"));
 /// Walks from the longest usable MAC prefix down, matching against the OUI table
 /// (which contains both 24-bit OUIs and longer MA-M/MA-S registrations).
 pub fn find_vendor(mac: &str) -> String {
-    let mut cache = VENDORS_CACHE.lock().unwrap();
+    let mut cache = lock_ok(&VENDORS_CACHE);
 
     if let Some(vendor) = cache.get(mac) {
         return vendor.clone();

@@ -392,18 +392,21 @@ impl AppGui {
             .sensitive(false)
             .build();
 
+        // Embedded CSS bytes — from_utf8 cannot fail on an ASCII constant, but a
+        // panic here would take the whole window down; degrade to no styling.
         let css_provider = CssProvider::new();
-        css_provider.load_from_data(
-            std::str::from_utf8(
-                b"
+        if let Some(css) = std::str::from_utf8(
+            b"
                     .error {
                         color: red;
                         border-color: red;
                     }
                 ",
-            )
-            .unwrap(),
-        );
+        )
+        .ok()
+        {
+            css_provider.load_from_data(css);
+        }
 
         let style_context = channel_filter_entry.style_context();
         style_context.add_provider(&css_provider, gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION);

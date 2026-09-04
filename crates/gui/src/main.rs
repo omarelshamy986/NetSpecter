@@ -13,11 +13,20 @@ mod types;
 fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
-    gtk4::init().expect("Could not initialize gtk4");
+    if let Err(e) = gtk4::init() {
+        // No display / broken GTK install: a message on stderr beats a silent panic.
+        eprintln!("could not initialize GTK4: {e}");
+        eprintln!("If running over SSH, forward X: ssh -X, or set DISPLAY/WAYLAND_DISPLAY.");
+        std::process::exit(1);
+    }
 
-    Settings::default()
-        .unwrap()
-        .set_gtk_icon_theme_name(Some("Adwaita"));
+    // Optional cosmetic setting — missing schemas (flatpak-style setups) must not
+    // abort startup over an icon-theme name.
+    if let Ok(settings) = Settings::default() {
+        settings.set_gtk_icon_theme_name(Some("Adwaita"));
+    } else {
+        log::warn!("gtk Settings schema unavailable — keeping the default icon theme");
+    }
 
     let application = Application::builder()
         .application_id(globals::APP_ID)

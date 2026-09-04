@@ -195,7 +195,7 @@ pub fn launch(config: EvilTwinConfig) -> Result<EvilTwinSession, EvilTwinError> 
     );
     match portal {
         Ok(server) => {
-            *PORTAL_SERVER.lock().unwrap() = Some(server);
+            *PORTAL_SERVER.lock().unwrap_or_else(|p| p.into_inner()) = Some(server);
         }
         Err(e) => {
             log::warn!("evil-twin portal server: {e}");
@@ -211,7 +211,7 @@ pub fn launch(config: EvilTwinConfig) -> Result<EvilTwinSession, EvilTwinError> 
         hostapd_pid,
         dnsmasq_pid: dnsmasq_child.as_ref().map(|c| c.id()),
     };
-    *LIVE_SESSION.lock().unwrap() = Some(session.clone());
+    *LIVE_SESSION.lock().unwrap_or_else(|p| p.into_inner()) = Some(session.clone());
     Ok(session)
 }
 
@@ -226,10 +226,10 @@ pub fn stop(session: &EvilTwinSession) -> Result<(), EvilTwinError> {
     if session.config.nat {
         disable_nat(&session.config.iface)?;
     }
-    if let Some(mut server) = PORTAL_SERVER.lock().unwrap().take() {
+    if let Some(mut server) = PORTAL_SERVER.lock().unwrap_or_else(|p| p.into_inner()).take() {
         server.stop();
     }
-    *LIVE_SESSION.lock().unwrap() = None;
+    *LIVE_SESSION.lock().unwrap_or_else(|p| p.into_inner()) = None;
     Ok(())
 }
 

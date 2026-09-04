@@ -502,9 +502,7 @@ fn dispatch(request: Request) -> (Response, bool) {
         Request::StopEvilTwin { iface } => {
             // Stop the REAL live session (launch() stores it; a dummy here
             // would have no pids and nothing would actually die).
-            let live = backend::evil_twin::LIVE_SESSION
-                .lock()
-                .unwrap()
+            let live = backend::evil_twin::LIVE_SESSION.lock().unwrap_or_else(|e| e.into_inner())
                 .take();
             match live {
                 Some(session) => match backend::evil_twin::stop(&session) {
@@ -557,13 +555,13 @@ fn dispatch(request: Request) -> (Response, bool) {
             // Launch the pipeline; the receiver is parked in a global so
             // PollAutoPwn can drain it.
             let rx = backend::autopwn_runner::run_auto_pwn(config);
-            let mut store = get_autopwn_events().lock().unwrap();
+            let mut store = get_autopwn_events().lock().unwrap_or_else(|e| e.into_inner());
             *store = Some(rx);
             (Response::AutoPwnStarted, false)
         }
 
         Request::PollAutoPwn => {
-            let mut store = get_autopwn_events().lock().unwrap();
+            let mut store = get_autopwn_events().lock().unwrap_or_else(|e| e.into_inner());
             match store.as_mut() {
                 Some(rx) => {
                     let mut events = Vec::new();

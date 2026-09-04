@@ -42,7 +42,7 @@ use sha1::Sha1;
 /// *verify* PMKIDs (when a candidate passphrase's PMK produces the right one).
 pub fn compute_pmkid(pmk: &[u8; 32], bssid: &[u8; 6], sta: &[u8; 6]) -> [u8; 16] {
     type HmacSha1 = Hmac<Sha1>;
-    let mut mac = HmacSha1::new_from_slice(pmk).expect("HMAC accepts any key length");
+    let mut mac = HmacSha1::new_from_slice(pmk).expect("HMAC-SHA accepts any key length (infallible by construction)");
     mac.update(b"PMK Name");
     mac.update(bssid);
     mac.update(sta);

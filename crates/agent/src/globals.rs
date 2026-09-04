@@ -11,9 +11,26 @@ use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::MutexGuard;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicU32;
 use std::thread::JoinHandle;
+
+/// Lock a global, surviving a poisoned mutex.
+///
+/// These globals hold replaceable runtime state (scan mirrors, service
+/// lists, cache maps) — nothing integrity-critical. A panic in one thread
+/// must not cascade into every later agent call failing with a poison
+/// panic: we recover and let the state refresh itself.
+pub fn lock_ok<T: ?Sized>(m: &Mutex<T>) -> MutexGuard<'_, T> {
+    match m.lock() {
+        Ok(g) => g,
+        Err(poisoned) => {
+            log::warn!("agent global mutex was poisoned — recovering");
+            poisoned.into_inner()
+        }
+    }
+}
 
 /// Root-owned 0700 directory for the agent's scan/capture files.
 pub static CAPTURE_DIR: &str = "/var/lib/netspecter";

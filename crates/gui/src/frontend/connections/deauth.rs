@@ -79,7 +79,9 @@ fn connect_toggle(app_data: Rc<AppData>) {
         #[strong]
         app_data,
         move |_, path| {
-            let iter = app_data.deauth_gui.store.iter(&path).unwrap();
+            let Some(iter) = app_data.deauth_gui.store.iter(&path) else {
+                return;
+            };
             let old_val = list_store_get!(app_data.deauth_gui.store, &iter, 0, bool);
 
             app_data

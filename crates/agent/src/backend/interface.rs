@@ -106,7 +106,7 @@ pub fn enable_monitor_mode(iface: &str, kill_network_manager: bool) -> Result<St
     kill_network_manager_services(kill_network_manager);
 
     if is_monitor_mode(iface)? {
-        *IFACE_WAS_MONITOR.lock().unwrap() = true;
+        *lock_ok(&IFACE_WAS_MONITOR) = true;
         return Ok(iface.to_string());
     }
 
@@ -125,7 +125,7 @@ pub fn disable_monitor_mode(iface: &str) -> Result<(), IfaceError> {
         return Ok(());
     }
 
-    let mut iface_was_monitor = IFACE_WAS_MONITOR.lock().unwrap();
+    let mut iface_was_monitor = lock_ok(&IFACE_WAS_MONITOR);
     if *iface_was_monitor {
         *iface_was_monitor = false;
         return Ok(());
@@ -143,17 +143,17 @@ pub fn disable_monitor_mode(iface: &str) -> Result<(), IfaceError> {
 
 /// Get the current interface
 pub fn get_iface() -> Option<String> {
-    IFACE.lock().unwrap().clone()
+    lock_ok(&IFACE).clone()
 }
 
 /// Set the current interface
 pub fn set_iface(iface: String) {
-    IFACE.lock().unwrap().replace(iface);
+    lock_ok(&IFACE).replace(iface);
 }
 
 /// Clear the current interface
 pub fn clear_iface() {
-    IFACE.lock().unwrap().take();
+    lock_ok(&IFACE).take();
 }
 
 /// List of services that can interfere with the app on the management of wireless cards
@@ -209,9 +209,7 @@ fn kill_network_manager_services(enabled: bool) {
                 .output()
                 .ok();
 
-            SERVICES_TO_RESTORE
-                .lock()
-                .unwrap()
+            lock_ok(&SERVICES_TO_RESTORE)
                 .push(service.to_string());
 
             log::warn!("killed '{service}'");
@@ -226,7 +224,7 @@ pub fn restore_network_manager() -> Result<(), IfaceError> {
         return Ok(());
     }
 
-    let services_to_restore: Vec<_> = SERVICES_TO_RESTORE.lock().unwrap().drain(..).collect();
+    let services_to_restore: Vec<_> = lock_ok(&SERVICES_TO_RESTORE).drain(..).collect();
 
     for service in services_to_restore {
         Command::new("systemctl")

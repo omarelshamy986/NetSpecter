@@ -101,7 +101,7 @@ fn pipeline_body(
     let jobs = build_attack_batch(&targets, cfg);
     let sched = Arc::new(Mutex::new(Scheduler::new()));
     {
-        let mut s = sched.lock().unwrap();
+        let mut s = sched.lock().unwrap_or_else(|p| p.into_inner());
         s.submit_batch(jobs);
     }
     let attack_started = Instant::now();
@@ -136,7 +136,7 @@ fn pipeline_body(
             // Record any password-y result into the cracked sink.
             if let Some(ref secret) = result {
                 if matches!(status, AttackJobStatus::Cracked | AttackJobStatus::Captured) {
-                    sink_for_attack.lock().unwrap().push((
+                    sink_for_attack.lock().unwrap_or_else(|p| p.into_inner()).push((
                         job.bssid.clone(),
                         job.essid.clone(),
                         secret.clone(),
@@ -164,7 +164,7 @@ fn pipeline_body(
     // persisted under the capture root. Wordlists come from the caller's
     // config — empty on a machine with none installed (download is the
     // operator's explicit choice in the CLI).
-    for (bssid, essid, secret) in cracked_sink.lock().unwrap().iter() {
+    for (bssid, essid, secret) in cracked_sink.lock().unwrap_or_else(|p| p.into_inner()).iter() {
         emit(
             tx,
             PipelineEvent::Cracked {
@@ -203,7 +203,7 @@ fn pipeline_body(
     }
 
     let attempted = {
-        let s = sched.lock().unwrap();
+        let s = sched.lock().unwrap_or_else(|p| p.into_inner());
         s.snapshot().len()
     };
 

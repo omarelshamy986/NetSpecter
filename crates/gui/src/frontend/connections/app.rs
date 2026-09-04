@@ -41,9 +41,10 @@ fn get_channel_entries(entry: &Entry) -> Vec<i32> {
         return Vec::new();
     }
 
+    // User-typed channel list — anything unparseable is skipped, not a panic.
     let channels: Vec<i32> = entry_text
         .split(',')
-        .map(|num| num.parse::<i32>().unwrap())
+        .filter_map(|num| num.trim().parse::<i32>().ok())
         .collect();
 
     channels
@@ -324,7 +325,9 @@ fn connect_about_button(app_data: Rc<AppData>) {
         #[strong]
         app_data,
         move |_| {
-            let icon = Pixbuf::from_read(BufReader::new(globals::APP_ICON)).unwrap();
+            // Embedded icon bytes cannot realistically fail, but a broken PNG
+            // must never crash the GUI — fall back to a logo-less dialog.
+            let icon = Pixbuf::from_read(BufReader::new(globals::APP_ICON)).ok();
             let desc = "A WiFi security auditing software mainly based on aircrack-ng tools suite";
 
             AboutDialog::builder()
@@ -333,7 +336,11 @@ fn connect_about_button(app_data: Rc<AppData>) {
                 .authors(vec!["Martin OLIVIER (martin.olivier@live.fr)".to_string()])
                 .copyright("Copyright (c) Martin OLIVIER")
                 .license_type(License::MitX11)
-                .logo(&Picture::for_pixbuf(&icon).paintable().unwrap())
+                .logo(
+                    icon.as_ref()
+                        .and_then(|i| Picture::for_pixbuf(i).paintable())
+                        .as_ref(),
+                )
                 .comments(desc)
                 .website_label("https://github.com/martin-olivier/netspecter")
                 .transient_for(&app_data.app_gui.window)
@@ -350,7 +357,7 @@ fn connect_update_button(app_data: Rc<AppData>) {
         app_data,
         move |_| {
             let version = globals::VERSION;
-            let new_version = globals::NEW_VERSION.lock().unwrap();
+            let new_version = crate::globals::lock_ok(&globals::NEW_VERSION);
 
             let new_version = match new_version.as_ref() {
                 Some(result) => result.clone(),
@@ -893,11 +900,12 @@ fn start_app_refresh(app_data: Rc<AppData>) {
             #[strong]
             app_data,
             move || {
-                let mut updater = globals::UPDATE_PROC.lock().unwrap();
+                let mut updater = crate::globals::lock_ok(&globals::UPDATE_PROC);
 
                 if let Some(proc) = updater.as_mut() {
                     if proc.is_finished() {
-                        if updater.take().unwrap().join().unwrap_or(false) {
+                        let finished = updater.take();
+                        if finished.map(|p| p.join().unwrap_or(false)).unwrap_or(false) {
                             app_data.app_gui.update_button.show();
                         }
                         return ControlFlow::Break;
@@ -910,15 +918,13 @@ fn start_app_refresh(app_data: Rc<AppData>) {
 }
 
 fn start_update_checker() {
-    globals::UPDATE_PROC
-        .lock()
-        .unwrap()
+    crate::globals::lock_ok(&globals::UPDATE_PROC)
         .replace(std::thread::spawn(|| {
             let update = backend::check_update(globals::VERSION);
 
             match update {
                 Some(update) => {
-                    *globals::NEW_VERSION.lock().unwrap() = Some(update);
+                    *crate::globals::lock_ok(&globals::NEW_VERSION) = Some(update);
                     true
                 }
                 None => false,
@@ -1001,7 +1007,16 @@ fn connect_capture_button(app_data: Rc<AppData>) {
                             Some(file) => file,
                             None => return,
                         };
-                        let path = gio_file.path().unwrap().to_str().unwrap().to_string();
+                        // Non-UTF8 or non-local path — bail with a clear message, not a panic.
+                        let Some(path) = gio_file
+                            .path()
+                            .and_then(|p| p.to_str().map(str::to_string))
+                        else {
+                            return ErrorDialog::spawn(
+                                &app_data.app_gui.window,
+                                "The chosen path is not representable as text on this system.",
+                            );
+                        };
 
                         if let Err(e) = backend::save_capture(&path) {
                             return ErrorDialog::spawn(

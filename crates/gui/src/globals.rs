@@ -2,9 +2,26 @@ use netspecter_common::types::{AP, AttackState, Client, Settings};
 
 use lazy_static::lazy_static;
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 use std::sync::atomic::AtomicBool;
 use std::thread::JoinHandle;
+
+/// Lock a global, surviving a poisoned mutex.
+///
+/// A panic on any thread while holding one of these locks would otherwise
+/// poison the mutex and every later `.lock().unwrap()` would panic the GUI
+/// forever after. The data behind these locks is replaceable local state
+/// (scan mirrors, caches, settings) — nothing integrity-critical — so we
+/// recover instead of dying: a stale mirror refreshes on the next snapshot.
+pub fn lock_ok<T: ?Sized>(m: &Mutex<T>) -> MutexGuard<'_, T> {
+    match m.lock() {
+        Ok(g) => g,
+        Err(poisoned) => {
+            log::warn!("global mutex was poisoned — recovering");
+            poisoned.into_inner()
+        }
+    }
+}
 
 pub static APP_ID: &str = "com.abdo.netspecter";
 pub use netspecter_common::VERSION;

@@ -5,6 +5,22 @@ use gtk4::prelude::*;
 use gtk4::*;
 use std::io::BufReader;
 
+/// Decode an icon, falling back to a blank 1x1 pixbuf.
+///
+/// The icons are compile-time embedded bytes, so this cannot realistically
+/// fail — but a corrupted build artifact must never crash the GUI over a
+/// decorative image. A blank icon degrades gracefully.
+fn pixbuf_or_blank(icon: &'static [u8]) -> Pixbuf {
+    Pixbuf::from_read(BufReader::new(icon)).unwrap_or_else(|_| {
+        log::warn!("failed to decode an embedded icon — using a blank one");
+        Pixbuf::new(gtk4::gdk::Colorspace::Rgb, true, 8, 1, 1).unwrap_or_else(|| {
+            // 1x1 RGBA cannot fail to allocate in practice; this is the last resort.
+            Pixbuf::new(gtk4::gdk::Colorspace::Rgb, false, 8, 1, 1)
+                .expect("allocating a 1x1 pixbuf")
+        })
+    })
+}
+
 pub struct IconButton {
     pub handle: Button,
     image: Image,
@@ -12,7 +28,7 @@ pub struct IconButton {
 
 impl IconButton {
     pub fn new(icon: &'static [u8]) -> Self {
-        let pixbuf = Pixbuf::from_read(BufReader::new(icon)).unwrap();
+        let pixbuf = pixbuf_or_blank(icon);
         let image = Image::from_pixbuf(Some(&pixbuf));
         let handle = Button::builder().child(&image).build();
 
@@ -28,7 +44,7 @@ impl IconButton {
     }
 
     pub fn set_icon(&self, icon: &'static [u8]) {
-        let pixbuf = Pixbuf::from_read(BufReader::new(icon)).unwrap();
+        let pixbuf = pixbuf_or_blank(icon);
         self.image.set_from_pixbuf(Some(&pixbuf))
     }
 

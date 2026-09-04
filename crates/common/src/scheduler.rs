@@ -250,13 +250,13 @@ pub fn run_pool<F>(
         handles.push(std::thread::spawn(move || {
             while Instant::now() < deadline {
                 let job = {
-                    let mut s = sched.lock().unwrap();
+                    let mut s = sched.lock().unwrap_or_else(|p| p.into_inner());
                     s.next_runnable()
                 };
                 let Some(job) = job else {
                     // Queue drained (or all channels busy) — small backoff.
                     std::thread::sleep(Duration::from_millis(200));
-                    let s = sched.lock().unwrap();
+                    let s = sched.lock().unwrap_or_else(|p| p.into_inner());
                     if s.status_counts()
                         .get(&AttackJobStatus::Queued)
                         .copied()
@@ -275,7 +275,7 @@ pub fn run_pool<F>(
                     continue;
                 };
                 let (status, result) = f(&job);
-                let mut s = sched.lock().unwrap();
+                let mut s = sched.lock().unwrap_or_else(|p| p.into_inner());
                 s.complete(job.id, status, result);
             }
         }));
@@ -469,7 +469,7 @@ mod tests {
                 (AttackJobStatus::Captured, Some(format!("done {}", j.bssid)))
             },
         );
-        let counts = sched.lock().unwrap().status_counts();
+        let counts = sched.lock().unwrap_or_else(|p| p.into_inner()).status_counts();
         assert_eq!(counts.get(&AttackJobStatus::Captured), Some(&4));
         assert_eq!(counts.get(&AttackJobStatus::Queued), None);
     }
