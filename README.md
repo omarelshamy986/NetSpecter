@@ -61,6 +61,20 @@ It is written in **Rust** with a **GTK4** GUI and an out-of-process privileged a
 
 The captive-portal HTML is fully templated via `templates/portal.html.askama` and ships with **two default skins** (router-mimic and ISP-mimic). Operators are expected to customize the skin to match the target environment.
 
+### 🤖 Auto-Pwn — the one-button engagement
+
+The whole pipeline as a single action: pick a target (or all of them), press go, and NetSpecter runs everything end-to-end — discovering networks, recovering hidden SSIDs, ranking each target by attackability, launching the optimal attack per target, then cracking every capture with hashcat (`-m 22000`) as it lands.
+
+```
+scan ──▶ rank ──▶ attack ──▶ capture ──▶ hashcat ──▶ cracked
+        (per target: PMKID → handshake → WPS → Evil Twin fallback)
+```
+
+- **Live event stream** — every stage emits progress you can watch (GUI page or CLI)
+- **Per-target attack selection** — WPS/Pixie-Dust first when the target exposes it, PMKID next (no client needed), handshake chase, Evil-Twin social-engineering fallback
+- **Crack-as-captured** — any `.hc22000` the run persists goes straight through the configured wordlist chain; every recovered password is announced live
+- Available from the GUI's Auto-Pwn page and the CLI's guided flow
+
 ### 🧙 Smart Wizard
 
 A guided, step-by-step flow for operators who don't want to remember the optimal sequence:
