@@ -214,8 +214,8 @@ mod tests {
         assert!(pin.chars().all(|c| c.is_ascii_digit()));
         // Base = 0x123456 % 1e7 = 1193046, zero-padded to 7
         assert!(pin.starts_with("1193046"), "pin was {pin}");
-        // checksum of 1193046: 1*3+1*1+9*3+3*1+0*3+4*1+6*3 = 3+1+27+3+0+4+18 = 56 → 6
-        assert_eq!(&pin[7..], "6");
+        // Spec checksum of 1193046: 3+1+27+3+0+4+18 = 56, complement to 60 → 4
+        assert_eq!(&pin[7..], "4");
     }
 
     #[test]
@@ -224,8 +224,9 @@ mod tests {
         let pin = fte_pin_from_essid("FTE-A1B2", &mac).expect("stock essid must compute");
         assert_eq!(pin.len(), 8);
         assert!(pin.chars().all(|c| c.is_ascii_digit()));
-        // base = 0x11A1B2 = 1153714, +7 = 1153721 → 7 digits + checksum
-        assert!(pin.starts_with("1153721"), "pin was {pin}");
+        // base = 0x11A1B2 = 1155506, +7 = 1155513 → 7 digits + spec checksum 1
+        assert!(pin.starts_with("1155513"), "pin was {pin}");
+        assert_eq!(&pin[7..], "1");
         // renamed / non-stock ESSID → no candidate from this path
         assert_eq!(fte_pin_from_essid("MyHomeWiFi", &mac), None);
         assert_eq!(fte_pin_from_essid("FTE-XYZ!", &mac), None);

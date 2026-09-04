@@ -189,7 +189,7 @@ fn pipeline_body(
                     wordlist: cfg.wordlists[0].display().to_string(),
                 },
             );
-            if let Some(password) = crack_with_hashcat(&hashfile, &cfg.wordlists) {
+            if let Some(password) = crack_with_hashcat(hashfile, &cfg.wordlists) {
                 emit(
                     tx,
                     PipelineEvent::Cracked {

@@ -67,13 +67,17 @@ use sha1::Sha1;
 ///
 /// This catches typos; the AP verifies it as part of M4.
 pub fn compute_wps_checksum(pin7: &[u8; 7]) -> u8 {
+    // WPS 2.0 §8.4 checksum: weights alternate 3,1,3,1,3,1,3 across the seven
+    // digits (first digit ×3), and the eighth digit is `(10 - sum%10) % 10` —
+    // i.e. what makes the weighted total a multiple of ten.
     let mut sum: u32 = 0;
     for (i, &d) in pin7.iter().enumerate() {
         // Digits arrive as ASCII bytes (b'0'..=b'9') from tools/the wire.
         let digit = (d - b'0') as u32;
-        sum += digit * (i as u32 + 1);
+        let weight: u32 = if i.is_multiple_of(2) { 3 } else { 1 };
+        sum += digit * weight;
     }
-    (sum % 10) as u8
+    (10 - (sum % 10)) as u8 % 10
 }
 
 /// Build the full 8-digit PIN string from a 7-digit PIN + computed checksum.
