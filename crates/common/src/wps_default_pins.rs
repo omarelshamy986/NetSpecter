@@ -172,6 +172,7 @@ pub fn default_pin_candidates(bssid: &str, essid: &str) -> Vec<DefaultPinCandida
                 source: "factory static PIN (never rotated)",
             });
         }
+        let _ = (model.vendor, model.models);
     }
 
     // Nothing known for this OUI: still offer the two most common factory
