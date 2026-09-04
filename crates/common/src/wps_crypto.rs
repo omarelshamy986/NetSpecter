@@ -55,6 +55,7 @@
 //! number library; the recovery loop we ship is the AuthKey + HMAC
 //! portion that's independent of the DH math. See the `// TODO` notes.
 
+use hmac::digest::KeyInit;
 use hmac::{Hmac, Mac};
 use sha1::Sha1;
 

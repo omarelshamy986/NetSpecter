@@ -79,8 +79,8 @@ pub fn pub_key_to_bytes(n: &BigUint) -> [u8; 192] {
 /// off the top byte to keep the value < `p`, and ensure the result is
 /// `>= 2` by clamping low values.
 pub fn generate_private_key() -> [u8; 192] {
-    use rand::RngCore;
-    let mut rng = rand::thread_rng();
+    use rand::rand_core::Rng;
+    let mut rng = rand::rng();
     let mut bytes = [0u8; 192];
     rng.fill_bytes(&mut bytes);
     // Clamp top byte so the value stays < p (which has its top byte as 0xFF

@@ -12,6 +12,8 @@ NetSpecter is a native Linux tool for assessing the security posture of WiFi net
 
 It is written in **Rust** with a **GTK4** GUI and an out-of-process privileged agent that owns the wireless interface.
 
+> 📐 **Adding a feature?** [`ARCHITECTURE.md`](ARCHITECTURE.md) is the map: crate layout, the attack-module pattern, the IPC contract, and where each kind of change goes.
+
 > 🔒 **This is an offensive security tool.** Use it only against networks you own or have written permission to test. See [Ethics & Law](#-ethics--law) below.
 
 ---

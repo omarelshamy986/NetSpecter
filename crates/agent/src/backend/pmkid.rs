@@ -229,9 +229,9 @@ pub fn harvest_pmkid(bssid: &str, essid: &str, timeout_secs: u64) -> Option<Pmki
 }
 
 fn rand_sta_mac() -> [u8; 6] {
-    use rand::RngCore;
+    use rand::rand_core::Rng;
     let mut mac = [0u8; 6];
-    rand::thread_rng().fill_bytes(&mut mac);
+    rand::rng().fill_bytes(&mut mac);
     // Locally-administered, unicast — clear bit 0 of byte 0, set bit 1.
     mac[0] = (mac[0] & 0xfe) | 0x02;
     mac

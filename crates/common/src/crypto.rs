@@ -11,6 +11,7 @@
 //! and report generation). Pulling them into a single crate avoids the agent
 //! having to expose crypto helpers over IPC.
 
+use hmac::digest::KeyInit;
 use hmac::{Hmac, Mac};
 use pbkdf2::pbkdf2_hmac;
 use sha2::{Digest, Sha256};
