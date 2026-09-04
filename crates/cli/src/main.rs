@@ -305,6 +305,7 @@ fn scan(agent: &mut Agent, iface: &str) -> Vec<AP> {
         goodbye();
     }
 
+    spawn_enter_watcher();
     let started = Instant::now();
     let mut aps: Vec<AP> = Vec::new();
     let mut last_count = 0usize;
@@ -341,11 +342,23 @@ fn scan(agent: &mut Agent, iface: &str) -> Vec<AP> {
 }
 
 /// Non-blocking check for a pending Enter press.
+///
+/// A reader thread parks on stdin and flips this flag as soon as a line
+/// arrives; the scan loop polls it between 2s ticks.
+static ENTER_PRESSED: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+fn spawn_enter_watcher() {
+    std::thread::spawn(|| {
+        let mut line = String::new();
+        // Blocks until the user presses Enter; one line is all we need.
+        let _ = std::io::stdin().read_line(&mut line);
+        ENTER_PRESSED.store(true, std::sync::atomic::Ordering::Relaxed);
+    });
+}
+
 fn user_pressed_enter() -> bool {
-    // 0-byte poll via a raw read on stdin would need libc; keep it simple —
-    // this CLI is guided, so just run a fixed number of 2s polls and let the
-    // user stop with the refresh/quit choice in the target picker instead.
-    false
+    ENTER_PRESSED.load(std::sync::atomic::Ordering::Relaxed)
 }
 
 fn vendor_of(bssid: &str) -> String {
@@ -701,10 +714,23 @@ fn run_attack(agent: &mut Agent, ap: &AP, iface: &str, action: &str) {
 
             // The PMKID harvest reported the capture path; ask for it (with a
             // sensible default guess from the capture dir naming scheme).
+            // Mirror the agent's capture_dir_for() layout exactly:
+            // {essid sanitized (alnum/-/_ else _)}_{bssid no colons}/pmkid_attack.hc22000
+            let sanitized: String = ap
+                .essid
+                .bytes()
+                .map(|b| {
+                    if b.is_ascii_alphanumeric() || b == b'-' || b == b'_' {
+                        b as char
+                    } else {
+                        '_'
+                    }
+                })
+                .collect();
+            let sanitized = if sanitized.is_empty() { "hidden".to_string() } else { sanitized };
             let default_src = format!(
-                "/var/lib/netspecter/captures/{}_{}.hc22000",
-                ap.bssid.replace(':', ""),
-                ap.essid.replace('/', "_")
+                "/var/lib/netspecter/{sanitized}_{}/pmkid_attack.hc22000",
+                ap.bssid.replace(':', "")
             );
             let src = prompt(&format!(
                 "capture file (Enter = {default_src}):"

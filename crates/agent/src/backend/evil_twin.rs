@@ -75,6 +75,10 @@ lazy_static::lazy_static! {
     /// The running captive-portal server, if a session is live.
     static ref PORTAL_SERVER: std::sync::Mutex<Option<super::portal_http::PortalServer>> =
         std::sync::Mutex::new(None);
+    /// The live session record, so StopEvilTwin can tear down the REAL
+    /// daemons instead of a dummy with no pids.
+    pub static ref LIVE_SESSION: std::sync::Mutex<Option<EvilTwinSession>> =
+        std::sync::Mutex::new(None);
 }
 
 /// Resolve the portal directory to serve.
@@ -195,13 +199,16 @@ pub fn launch(config: EvilTwinConfig) -> Result<EvilTwinSession, EvilTwinError> 
         }
     }
 
-    Ok(EvilTwinSession {
+    let session = EvilTwinSession {
         config,
         portal_url: "http://captive.portal/".into(),
         credentials: Vec::new(),
         started_at: chrono::Utc::now().to_rfc3339(),
         hostapd_pid,
-    })
+        dnsmasq_pid: dnsmasq_child.as_ref().map(|c| c.id()),
+    };
+    *LIVE_SESSION.lock().unwrap() = Some(session.clone());
+    Ok(session)
 }
 
 /// Stop the Evil-Twin attack: kill the daemons, restore NAT, clean up.
@@ -209,13 +216,16 @@ pub fn stop(session: &EvilTwinSession) -> Result<(), EvilTwinError> {
     if let Some(pid) = session.hostapd_pid {
         let _ = Command::new("kill").arg(pid.to_string()).output();
     }
-    let _ = Command::new("pkill").arg("-f").arg("dnsmasq").output();
+    if let Some(pid) = session.dnsmasq_pid {
+        let _ = Command::new("kill").arg(pid.to_string()).output();
+    }
     if session.config.nat {
         disable_nat(&session.config.iface)?;
     }
     if let Some(mut server) = PORTAL_SERVER.lock().unwrap().take() {
         server.stop();
     }
+    *LIVE_SESSION.lock().unwrap() = None;
     Ok(())
 }
 

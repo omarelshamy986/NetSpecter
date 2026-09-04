@@ -495,28 +495,21 @@ fn dispatch(request: Request) -> (Response, bool) {
         }
 
         Request::StopEvilTwin { iface } => {
-            // The agent's evil_twin module tracks sessions by iface.
-            // We re-fetch the active session if any and call stop().
-            // For simplicity we synthesize a Session handle here; the
-            // production deployment will move session-tracking into a
-            // dedicated store on the agent side.
-            let dummy = backend::evil_twin::EvilTwinSession {
-                config: backend::evil_twin::EvilTwinConfig {
-                    iface: iface.clone(),
-                    ssid: String::new(),
-                    bssid: String::new(),
-                    channel: 0,
-                    portal_template: std::path::PathBuf::new(),
-                    nat: false,
+            // Stop the REAL live session (launch() stores it; a dummy here
+            // would have no pids and nothing would actually die).
+            let live = backend::evil_twin::LIVE_SESSION
+                .lock()
+                .unwrap()
+                .take();
+            match live {
+                Some(session) => match backend::evil_twin::stop(&session) {
+                    Ok(()) => (Response::Ok, false),
+                    Err(e) => (err(e), false),
                 },
-                portal_url: String::new(),
-                credentials: vec![],
-                started_at: String::new(),
-                hostapd_pid: None,
-            };
-            match backend::evil_twin::stop(&dummy) {
-                Ok(()) => (Response::Ok, false),
-                Err(e) => (err(e), false),
+                None => {
+                    let _ = iface;
+                    (err("no evil-twin session is running"), false)
+                }
             }
         }
 
