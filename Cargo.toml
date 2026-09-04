@@ -39,6 +39,6 @@ printpdf = "0.7"
 num-bigint = "0.4"
 num-integer = "0.1"
 num-traits = "0.2"
-askama = "0.12"
+askama = "0.16"
 
 [workspace.metadata]
