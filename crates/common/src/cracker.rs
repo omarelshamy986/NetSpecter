@@ -596,8 +596,9 @@ ETA.until 2026-09-01T12:00:00
         use std::fmt::Write;
         let mut s = String::new();
         for x in lcg(seed).take(len) {
-            // Mixed control chars, colons, stars — the separators the parsers slice on.
-            let b = (x >> 33) as u8;
+            // ASCII only, so truncation slicing stays on char boundaries.
+            // Mixes control chars, colons, stars — the separators the parsers slice on.
+            let b = ((x >> 33) as u8) % 0x7f;
             let ch = if b.is_multiple_of(4) {
                 ':'
             } else if b.is_multiple_of(7) {

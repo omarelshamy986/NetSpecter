@@ -395,16 +395,14 @@ impl AppGui {
         // Embedded CSS bytes — from_utf8 cannot fail on an ASCII constant, but a
         // panic here would take the whole window down; degrade to no styling.
         let css_provider = CssProvider::new();
-        if let Some(css) = std::str::from_utf8(
+        if let Ok(css) = std::str::from_utf8(
             b"
                     .error {
                         color: red;
                         border-color: red;
                     }
                 ",
-        )
-        .ok()
-        {
+        ) {
             css_provider.load_from_data(css);
         }
 
