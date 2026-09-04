@@ -124,6 +124,8 @@ pub struct EvilTwinSession {
     pub credentials: Vec<CapturedCredential>,
     pub started_at: String,
     pub hostapd_pid: Option<u32>,
+    /// The dnsmasq instance we spawned (killed precisely on stop; never pkilled).
+    pub dnsmasq_pid: Option<u32>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -172,7 +174,9 @@ pub fn launch(config: EvilTwinConfig) -> Result<EvilTwinSession, EvilTwinError> 
     dnsmasq.arg("-C").arg(&dnsmasq_conf);
     dnsmasq.arg("--log-queries=extra");
     dnsmasq.stdout(dnsmasq_log.try_clone()?).stderr(dnsmasq_log);
-    dnsmasq.spawn().ok(); // dnsmasq exits if there's a port conflict — we don't fail here.
+    // Keep the handle so stop() can kill exactly this instance (never pkill —
+    // that would take the system dnsmasq down with it).
+    let dnsmasq_child = dnsmasq.spawn().ok(); // port conflict is survivable
 
     // Serve the captive portal ourselves — Fluxion-style flow without the
     // lighttpd/php-cgi dependency. Portal directories follow Fluxion's
