@@ -62,6 +62,9 @@ pub enum WpsAttackMethod {
     OnlineBrute,
     /// Historical `00000000` NULL PIN accepted.
     NullPin,
+    /// A vendor default PIN (BSSID/ESSID-derived) was accepted — the
+    /// factory PIN was never rotated.
+    DefaultPins,
     /// No recovery.
     None,
 }

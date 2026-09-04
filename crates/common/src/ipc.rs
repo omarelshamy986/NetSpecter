@@ -155,6 +155,14 @@ pub enum Request {
         timeout_secs: u64,
     },
 
+    /// Try the vendor default PINs first (BSSID/ESSID-derived, instant):
+    /// ComputePIN (zhaochunsheng), kcdtv FTE-XXXX, static factory PINs.
+    /// Returns the WPS outcome when one is accepted.
+    TryWpsDefaultPins {
+        bssid: String,
+        essid: String,
+    },
+
     /// Launch the full Auto-Pwn pipeline (discover → hidden recovery →
     /// rank → attack → crack). The agent streams PipelineEvent messages
     /// over a dedicated progress socket; this request returns the final

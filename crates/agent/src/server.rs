@@ -92,6 +92,7 @@ fn wps_outcome_wire(r: backend::wps::WpsResult) -> netspecter_common::wps::WpsOu
         backend::wps::WpsStrategy::PixieDust => WpsAttackMethod::PixieDust,
         backend::wps::WpsStrategy::OnlineBrute => WpsAttackMethod::OnlineBrute,
         backend::wps::WpsStrategy::NullPin => WpsAttackMethod::NullPin,
+        backend::wps::WpsStrategy::DefaultPins => WpsAttackMethod::DefaultPins,
         backend::wps::WpsStrategy::Detect => WpsAttackMethod::None,
     };
     netspecter_common::wps::WpsOutcome {
@@ -447,6 +448,14 @@ fn dispatch(request: Request) -> (Response, bool) {
                 return (err("invalid BSSID for WPS attack"), false);
             }
             let outcome = backend::wps::try_online_brute(&bssid, &channel, timeout_secs);
+            (Response::WpsOutcome(wps_outcome_wire(outcome)), false)
+        }
+
+        Request::TryWpsDefaultPins { bssid, essid } => {
+            if !is_valid_mac(&bssid) {
+                return (err("invalid BSSID for WPS attack"), false);
+            }
+            let outcome = backend::wps::try_default_pins(&bssid, &essid);
             (Response::WpsOutcome(wps_outcome_wire(outcome)), false)
         }
 

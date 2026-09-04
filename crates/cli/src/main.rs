@@ -624,6 +624,17 @@ fn run_attack(agent: &mut Agent, ap: &AP, iface: &str, action: &str) {
                 channels: Some(ap.channel.clone()),
             });
         }
+        "wps-default" => {
+            header("WPS DEFAULT PINS");
+            println!("{}", ui::cyan("  trying BSSID/ESSID-derived factory PINs first - instant on unrotated routers"));
+            run_wps(
+                agent,
+                Request::TryWpsDefaultPins {
+                    bssid: ap.bssid.clone(),
+                    essid: ap.essid.clone(),
+                },
+            );
+        }
         "wps-null" => {
             header("WPS NULL-PIN PROBE");
             run_wps(agent, Request::TryWpsNullPin { bssid: ap.bssid.clone() });

