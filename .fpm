@@ -1,7 +1,7 @@
 -s dir ./target/debug/netspecter ./target/debug/netspecter-agent ./target/debug/netspecter-cli ./crates/gui/icons/app_icon.png package portals README.md LICENSE
 --name netspecter
 --license MIT
---version 1.0.0
+--version 2.2.0
 --description "Advanced WiFi security auditing suite - PMKID, WPS, WEP, WPA3 detection, Evil Twin, hidden SSID discovery, smart wizard UI, HTML/PDF reports. Authorized pentesting only."
 --url "https://github.com/AbD02018/NetSpecter"
 --maintainer "AbD02018 <ana.abdo2013@gmail.com>"

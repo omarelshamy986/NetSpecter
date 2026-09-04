@@ -6,7 +6,7 @@
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
 [![GTK4](https://img.shields.io/badge/GTK-4.6-green.svg)](https://www.gtk.org)
 [![Platform](https://img.shields.io/badge/platform-Linux-lightgrey.svg)](#-requirements)
-[![Version](https://img.shields.io/badge/version-1.0.0-purple.svg)](Cargo.toml)
+[![Version](https://img.shields.io/badge/version-2.2.0-purple.svg)](Cargo.toml)
 
 NetSpecter is a native Linux tool for assessing the security posture of WiFi networks under **explicit, written authorization**. It discovers nearby networks and clients, captures the various authentication handshakes each encryption class exposes, and offers a guided workflow for the workflows a red team or pentester runs end-to-end — from scan to signed report.
 

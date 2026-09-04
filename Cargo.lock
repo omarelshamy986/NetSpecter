@@ -1533,7 +1533,7 @@ dependencies = [
 
 [[package]]
 name = "netspecter"
-version = "1.0.0"
+version = "2.2.0"
 dependencies = [
  "askama",
  "chrono",
@@ -1557,7 +1557,7 @@ dependencies = [
 
 [[package]]
 name = "netspecter-agent"
-version = "1.0.0"
+version = "2.2.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1586,8 +1586,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "netspecter-cli"
+version = "2.2.0"
+dependencies = [
+ "env_logger",
+ "log",
+ "netspecter-common",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "netspecter-common"
-version = "1.0.0"
+version = "2.2.0"
 dependencies = [
  "async-trait",
  "chrono",
