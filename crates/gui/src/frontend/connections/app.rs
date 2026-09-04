@@ -343,7 +343,8 @@ fn connect_about_button(app_data: Rc<AppData>) {
                 .build();
             // Logo set post-build: the setter takes Option<&Paintable> cleanly, and a
             // decode failure just leaves the dialog logo-less instead of crashing.
-            dialog.set_logo(icon.as_ref().and_then(|i| Picture::for_pixbuf(i).paintable()));
+            let paintable = icon.as_ref().and_then(|i| Picture::for_pixbuf(i).paintable());
+            dialog.set_logo(paintable.as_ref());
             dialog.show();
         }
     ));
