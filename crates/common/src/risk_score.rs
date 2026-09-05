@@ -28,19 +28,21 @@ pub fn score_ap(ap: &AP) -> RiskScore {
     if enc == Encryption::Wep {
         score += 60;
         reasons.push("WEP - statistically cracked in minutes (PTW)".into());
-    } else if enc.has_sae() && !enc.downgrade_target() {
+    } else if enc == Encryption::Wpa3Sae {
         score += 10;
         reasons.push("WPA3-SAE - no offline path (dragonfly); downgrade only".into());
-    } else if enc.has_psk() {
-        score += 30;
-        if enc.downgrade_target() {
-            score += 10;
-            reasons.push("WPA2/WPA3 transition - downgrade to WPA2 path available".into());
-        }
-    } else {
-        // Open / OWE / unclassified.
+    } else if enc == Encryption::Wpa3Transition {
         score += 40;
-        reasons.push("open or unclassified network - capture the clients instead".into());
+        reasons.push("WPA2/WPA3 transition - downgrade to WPA2 path available".into());
+    } else if enc.psk_attackable() {
+        score += 30;
+    } else if enc == Encryption::Open {
+        score += 40;
+        reasons.push("open network - capture the clients instead".into());
+    } else {
+        // Enterprise / unknown: client-side attacks remain, no PSK capture.
+        score += 15;
+        reasons.push("enterprise or unclassified - client-side attacks only".into());
     }
 
     // WPS exposure - the instant-win multiplier (WPS is overwhelmingly a
