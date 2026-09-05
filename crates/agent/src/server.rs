@@ -454,14 +454,14 @@ fn dispatch(request: Request) -> (Response, bool) {
         Request::StartKarma { iface, config } => {
             match backend::karma_runner::launch(&iface, config) {
                 Ok(session) => (Response::KarmaSession(Some(session)), false),
-                Err(e) => (err(&format!("karma: {e}")), false),
+                Err(e) => (err(format!("karma: {e}")), false),
             }
         }
 
         Request::StopKarma => {
             match backend::karma_runner::stop() {
                 Ok(()) => (Response::Ok, false),
-                Err(e) => (err(&format!("karma: {e}")), false),
+                Err(e) => (err(format!("karma: {e}")), false),
             }
         }
 
@@ -472,7 +472,7 @@ fn dispatch(request: Request) -> (Response, bool) {
         Request::RunCaplet { path } => {
             match backend::caplet_runner::run_caplet_file(&path) {
                 Ok(report) => (Response::CapletReport(report), false),
-                Err(e) => (err(&format!("caplet failed: {e}")), false),
+                Err(e) => (err(format!("caplet failed: {e}")), false),
             }
         }
 
