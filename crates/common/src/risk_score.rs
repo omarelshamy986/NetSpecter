@@ -147,6 +147,7 @@ mod tests {
             power: "-45".into(),
             first_time_seen: String::new(),
             last_time_seen: String::new(),
+            vendor: "Test".into(),
             probes: String::new(),
         }
     }

@@ -22,9 +22,9 @@ pub fn run_caplet_file(path: &str) -> Result<CapletReport, String> {
 /// The first AP in the current snapshot, if any.
 fn first_target() -> Result<netspecter_common::types::AP, String> {
     crate::backend::scan::get_aps()
-        .iter()
+        .values()
         .next()
-        .map(|(_, ap)| ap.clone())
+        .cloned()
         .ok_or_else(|| "no targets in the scan snapshot — run scan first".to_string())
 }
 
@@ -76,9 +76,9 @@ fn run_action(name: &str, _args: &[String]) -> Result<String, String> {
         }
         KnownAction::HiddenRecovery => {
             let hidden = crate::backend::scan::get_aps()
-                .iter()
-                .filter(|(_, ap)| ap.hidden || ap.essid.is_empty())
-                .map(|(_, ap)| ap.clone())
+                .values()
+                .filter(|ap| ap.hidden || ap.essid.is_empty())
+                .cloned()
                 .collect::<Vec<_>>();
             if hidden.is_empty() {
                 return Ok("no hidden networks in the snapshot".into());
@@ -113,10 +113,9 @@ fn run_action(name: &str, _args: &[String]) -> Result<String, String> {
             // target record. The full engagement report stays a GUI/wizard
             // deliverable — a caplet gets the JSON snapshot.
             let aps = crate::backend::scan::get_aps();
-            let clients = crate::backend::scan::get_unlinked_clients();
             let targets: Vec<_> = aps
-                .iter()
-                .map(|(_, ap)| netspecter_common::backend_types::TargetReport {
+                .values()
+                .map(|ap| netspecter_common::backend_types::TargetReport {
                     bssid: ap.bssid.clone(),
                     essid: ap.essid.clone(),
                     encryption: ap.privacy.clone(),
