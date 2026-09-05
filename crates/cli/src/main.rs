@@ -1222,51 +1222,93 @@ fn main() {
     };
     ok("agent connected");
 
+    // ── The main flow: a simple numbered loop the user can always read. ──
     let mut aps: Vec<AP> = Vec::new();
 
     loop {
-        if aps.is_empty() {
-            aps = scan(&mut agent, &iface);
-        }
-        show_targets(&aps);
-        if aps.is_empty() {
-            let ans = prompt("(Enter = rescan, q = quit):");
-            if ans.is_empty() {
-                continue;
-            }
-            goodbye();
-        }
-        let choice = pick_from(aps.len());
-        if choice == usize::MAX {
-            // refresh — rescan in place.
-            if let Ok(Response::ScanData { aps: found, .. }) =
-                agent.call(Request::GetScanData)
-            {
-                aps = found;
-            }
-            continue;
-        }
-        let ap = aps[choice - 1].clone();
-
-        ap_details(&ap);
+        // Status line: where am I right now?
+        header("MAIN MENU");
+        println!(
+            "  {}  {}",
+            ui::cyan("card:"),
+            ui::bold(&iface)
+        );
+        println!(
+            "  {}  {}",
+            ui::cyan("networks in the last scan:"),
+            ui::bold(&aps.len().to_string())
+        );
         println!();
-        println!("{}", ui::dim("press Enter for the attack menu…"));
-        wait_enter();
+        println!("  {}  {}", ui::bold("[1]"), "Scan + pick a network (the guided path)");
+        println!("  {}  {}", ui::bold("[2]"), "Refresh the list without a new scan");
+        println!("  {}  {}", ui::bold("[3]"), "Auto-Pwn EVERYTHING (one button, no menus)");
+        if !aps.is_empty() {
+            println!("  {}  {}", ui::bold("[4]"), "Show the network list again");
+        }
+        println!("  {}  {}", ui::bold("[q]"), ui::dim("quit"));
 
-        loop {
-            attack_menu(&mut agent, &ap, &iface);
-            // attack_menu returns when the user picks [r]; ask what next.
-            println!();
-            let ans = prompt("(Enter = attack menu again, l = network list, s = rescan, q = quit):");
-            match ans.as_str() {
-                "q" | "Q" | "quit" => goodbye(),
-                "s" | "S" => {
-                    aps = scan(&mut agent, &iface);
-                    break;
+        match prompt("choose:").trim().to_lowercase().as_str() {
+            "1" => {
+                aps = scan(&mut agent, &iface);
+                if aps.is_empty() {
+                    warn("no networks found — check the card or rescan");
+                    continue;
                 }
-                "l" | "L" | "list" => break,
-                _ => {}
+                show_targets(&aps);
+                let choice = pick_from(aps.len());
+                if choice == usize::MAX {
+                    // refresh — rescan in place.
+                    if let Ok(Response::ScanData { aps: found, .. }) =
+                        agent.call(Request::GetScanData)
+                    {
+                        aps = found;
+                    }
+                    continue;
+                }
+                let ap = aps[choice - 1].clone();
+                ap_details(&ap);
+                println!();
+                println!("{}", ui::dim("press Enter for the attack menu…"));
+                wait_enter();
+                attack_menu(&mut agent, &ap, &iface);
             }
+            "2" => {
+                if let Ok(Response::ScanData { aps: found, .. }) =
+                    agent.call(Request::GetScanData)
+                {
+                    aps = found;
+                    ok(&format!("{} network(s) refreshed", aps.len()));
+                } else {
+                    warn("no scan running — run a scan first (option 1)");
+                }
+            }
+            "3" => {
+                aps = scan(&mut agent, &iface);
+                if aps.is_empty() {
+                    warn("no networks found — nothing to attack");
+                    continue;
+                }
+                let ap = aps[0].clone();
+                attack_menu(&mut agent, &ap, &iface);
+                // The Auto-Pwn option lives inside the attack menu's AUTOMATION
+                // section; this shortcut drops you straight there via the first
+                // target. For the full one-button run choose it from the list.
+            }
+            "4" if !aps.is_empty() => {
+                show_targets(&aps);
+                let choice = pick_from(aps.len());
+                if choice == usize::MAX {
+                    continue;
+                }
+                let ap = aps[choice - 1].clone();
+                ap_details(&ap);
+                println!();
+                println!("{}", ui::dim("press Enter for the attack menu…"));
+                wait_enter();
+                attack_menu(&mut agent, &ap, &iface);
+            }
+            "q" | "quit" => goodbye(),
+            _ => warn("pick a number from the menu"),
         }
     }
 }
