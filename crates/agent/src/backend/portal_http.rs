@@ -135,6 +135,23 @@ impl PortalServer {
     }
 }
 
+/// Is this Host header one of the OS captive-portal detection endpoints?
+///
+/// Android (connectivitycheck.gstatic.com / clientsN.google.com),
+/// iOS/macOS (captive.apple.com), Windows (msftconnecttest / msftncsi),
+/// Firefox (detectportal.firefox.com), GNOME (nmcheck.gnome.org).
+/// All must see a redirect so their OS auto-opens the login page.
+fn is_connectivity_probe(host: &str) -> bool {
+    host.contains("captive.apple.com")
+        || host.contains("connectivitycheck")
+        || host.contains("connecttest")
+        || host.contains("msftncsi")
+        || host.contains("detectportal.firefox.com")
+        || host.contains("nmcheck.gnome.org")
+        || host.contains("clients3.google.com")
+        || host.contains("clients4.google.com")
+}
+
 fn handle_client(
     mut stream: TcpStream,
     portal_dir: &Path,
@@ -183,11 +200,15 @@ fn handle_client(
     let path = target.split('?').next().unwrap_or("/");
 
     // ── Connectivity-check emulation (phones auto-open the portal) ──
-    if host.contains("captive.apple.com") {
-        return respond(&mut stream, 200, "text/html", b"<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>");
-    }
-    if host.contains("connectivitycheck") || host.contains("clients3.google.com") || host.contains("clients4.google.com") {
-        return respond(&mut stream, 204, "text/html", b"");
+    //
+    // The trick that makes the portal POP on its own: every OS "am I online?"
+    // probe must be answered with a redirect to the portal, which the OS
+    // interprets as "you are behind a captive portal" and auto-opens the
+    // login page. Answering 204/Success here would tell the phone internet
+    // is fine and the portal would never appear on its own.
+    if is_connectivity_probe(&host) {
+        log::debug!("captive probe from host={host} -> redirecting to portal");
+        return redirect(&mut stream, "/");
     }
 
     // ── Password submission ──
@@ -417,6 +438,26 @@ fn redirect(stream: &mut TcpStream, location: &str) -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn captive_probes_are_recognized_per_os() {
+        // Android
+        assert!(is_connectivity_probe("connectivitycheck.gstatic.com"));
+        assert!(is_connectivity_probe("connectivitycheck.android.com"));
+        assert!(is_connectivity_probe("clients3.google.com"));
+        assert!(is_connectivity_probe("clients4.google.com"));
+        // Apple
+        assert!(is_connectivity_probe("captive.apple.com"));
+        // Windows
+        assert!(is_connectivity_probe("www.msftconnecttest.com"));
+        assert!(is_connectivity_probe("www.msftncsi.com"));
+        // Firefox / GNOME
+        assert!(is_connectivity_probe("detectportal.firefox.com"));
+        assert!(is_connectivity_probe("nmcheck.gnome.org"));
+        // Ordinary hosts are NOT probes.
+        assert!(!is_connectivity_probe("www.facebook.com"));
+        assert!(!is_connectivity_probe("router.local"));
+    }
     use super::*;
 
     #[test]

