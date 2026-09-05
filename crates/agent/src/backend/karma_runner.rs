@@ -11,6 +11,7 @@
 //! 3. `stop` kills every hostapd by PID and removes the configs — the
 //!    precise-teardown rule, same as evil-twin.
 
+use lazy_static::lazy_static;
 use netspecter_common::karma::{KarmaConfig, KarmaSession, KarmaVap};
 
 use std::process::{Child, Command};
@@ -49,9 +50,8 @@ pub fn launch(iface: &str, config: KarmaConfig) -> Result<KarmaSession, String> 
     // Learning window: read broadcast probe requests straight off the raw
     // socket (every probe, not just those aimed at one BSSID — that's the
     // KARMA premise: the PNL leaks over the air).
-    let socket = super::raw_socket::open(iface).ok_or_else(|| {
-        format!("could not open a raw socket on {iface} (monitor mode?)")
-    })?;
+    let socket = super::raw_socket::open(iface)
+        .map_err(|e| format!("could not open a raw socket on {iface}: {e} (monitor mode?)"))?;
     let mut frame = vec![0u8; 4096];
     while started.elapsed() < window {
         match super::raw_socket::recv(&socket, &mut frame) {

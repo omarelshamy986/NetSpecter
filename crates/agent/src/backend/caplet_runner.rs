@@ -14,7 +14,8 @@ use netspecter_common::caplet::{self, CapletReport, KnownAction};
 /// the matching backend.
 pub fn run_caplet_file(path: &str) -> Result<CapletReport, String> {
     let lines = caplet::load_caplet(std::path::Path::new(path))?;
-    let report = caplet::execute_caplet(&lines, run_action, std::thread::sleep);
+    let sleep_secs = |secs: u64| std::thread::sleep(std::time::Duration::from_secs(secs));
+    let report = caplet::execute_caplet(&lines, run_action, sleep_secs);
     Ok(report)
 }
 
@@ -118,7 +119,7 @@ fn run_action(name: &str, _args: &[String]) -> Result<String, String> {
                 .map(|(_, ap)| netspecter_common::backend_types::TargetReport {
                     bssid: ap.bssid.clone(),
                     essid: ap.essid.clone(),
-                    encryption: ap.encryption.clone(),
+                    encryption: ap.privacy.clone(),
                     channel: ap.channel.clone(),
                     clients_observed: ap.clients.len() as u32,
                     handshake_captured: ap.handshake,
