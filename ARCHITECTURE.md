@@ -71,19 +71,24 @@ consistent:
   `agent/src/server.rs` `match` + client helper in `gui/src/backend/client.rs`
   (and/or `ipc_client.rs` for the GUI page-side client).
 
-## Modules that exist but are dormant
+## Module status map
 
-`common::karma`, `common::hid`, `common::ble`, `common::caplet` are fully
-written but **not wired to any front-end yet** (inherited from the airgorah
-fork, kept because they're solid building blocks):
+| Module | State | Where it lives |
+|---|---|---|
+| Scan / sniffer / hidden recovery | Live | `agent::backend::{scan,sniffer,hidden,hidden_beacon}` |
+| PMKID / handshake / WEP / WPA3 | Live | `agent::backend::{pmkid,capture,wep,wpa3}` |
+| WPS (NULL → default PINs → Pixie → brute) | Live | `agent::backend::wps` + `common::wps_default_pins` |
+| Evil Twin (captive portals, 12 skins) | Live | `agent::backend::{evil_twin,portal_http}` |
+| KARMA (probe-response rogue AP) | Live | `agent::backend::karma_runner` + `common::karma` |
+| Caplets (scripted scenarios + presets) | Live | `agent::backend::caplet_runner` + `common::caplet` + `caplets/` |
+| Auto-Pwn pipeline | Live | `agent::backend::autopwn_runner` + `common::autopwn` |
+| Risk scoring (attackability advisor) | Live | `common::risk_score` (rendered in CLI scan list) |
+| **hid** (MouseJack/KeySniffer) | **Dormant** — logic complete, needs a radio front-end | `common::hid` |
+| **ble** (BLE reconnaissance) | **Dormant** — logic complete, needs a BLE adapter path | `common::ble` |
 
-- **karma** — KARMA/Mana rogue-AP (probe-response attack)
-- **hid** — MouseJack/KeySniffer class wireless keyboard/mouse attacks
-- **ble** — BLE reconnaissance (scan_req/scan_resp parsing)
-- **caplet** — bettercap-style command-script engine for attack automation
-
-If you want any of these as a feature: wire it like any other attack module
-(see the table above) — the logic is already written and unit-tested.
+The dormant pair is kept because they're solid, unit-tested building blocks
+from the airgorah lineage; wiring them follows the same table at the top of
+this file.
 
 ## Testing conventions
 

@@ -517,24 +517,49 @@ fn attack_menu(agent: &mut Agent, ap: &AP, iface: &str) {
     let hidden = ap.hidden || ap.essid.is_empty() || ap.essid.starts_with("<hidden");
 
     header("PICK AN ATTACK");
+
+    // Menu model: (section title, entries). Sections keep the attack surface
+    // scannable; numbers stay stable because everything is one flat vec.
     let mut options: Vec<(&str, String)> = Vec::new();
+    let mut sections: Vec<(&str, usize)> = Vec::new(); // (title, first index)
+
     if hidden {
+        sections.push(("RECONNAISSANCE", options.len()));
         options.push(("Recover the hidden network name (probe/deauth/beacon)", String::new()));
     }
+
+    sections.push(("WIRELESS CAPTURE", options.len()));
     options.push(("PMKID harvest (no client needed)", format!("pmkid:{}", ap.bssid)));
     options.push(("4-way handshake capture (deauth a client)", format!("handshake:{}", ap.bssid)));
-    options.push(("WPS: NULL PIN probe (instant if accepted)", format!("wps-null:{}", ap.bssid)));
-    options.push(("WPS: Pixie Dust (offline, seconds when it works)", format!("wps-pixie:{}", ap.bssid)));
-    options.push(("WPS: online PIN brute (hours)", format!("wps-brute:{}", ap.bssid)));
-    options.push(("Evil Twin captive portal (social engineering)", format!("evil-twin:{}", ap.bssid)));
-    options.push(("Run a caplet script (automated scenario)", "caplet-run".to_string()));
-    options.push(("KARMA: impersonate probed networks (listen then answer)", "karma".to_string()));
-    options.push(("Deauth only (kick clients off)", format!("deauth:{}", ap.bssid)));
-    options.push(("Crack: run wordlists against the captured material", format!("crack:{}", ap.bssid)));
-    options.push(("Auto-Pwn EVERYTHING (the one-button pipeline)", "auto-pwn".into()));
 
-    for (i, (label, _)) in options.iter().enumerate() {
-        println!("  {}  {}", ui::bold(&format!("[{}]", i + 1)), label);
+    sections.push(("WPS ATTACKS (cheapest first)", options.len()));
+    options.push(("NULL PIN probe (instant if accepted)", format!("wps-null:{}", ap.bssid)));
+    options.push(("Vendor default PINs (instant on unrotated routers)", format!("wps-default:{}", ap.bssid)));
+    options.push(("Pixie Dust (offline, seconds when it works)", format!("wps-pixie:{}", ap.bssid)));
+    options.push(("Online PIN brute (hours, last resort)", format!("wps-brute:{}", ap.bssid)));
+
+    sections.push(("SOCIAL ENGINEERING", options.len()));
+    options.push(("Evil Twin captive portal (impersonate THIS network)", format!("evil-twin:{}", ap.bssid)));
+    options.push(("KARMA (answer every probed network name)", "karma".to_string()));
+
+    sections.push(("DISRUPTION", options.len()));
+    options.push(("Deauth only (kick clients off)", format!("deauth:{}", ap.bssid)));
+
+    sections.push(("POST-CAPTURE", options.len()));
+    options.push(("Crack: run wordlists against captured material", format!("crack:{}", ap.bssid)));
+
+    sections.push(("AUTOMATION", options.len()));
+    options.push(("Auto-Pwn EVERYTHING (the one-button pipeline)", "auto-pwn".into()));
+    options.push(("Run a caplet script (automated scenario)", "caplet-run".to_string()));
+
+    // Render with section headers: each section spans from its first index to
+    // the next section's first index (or the end).
+    for (si, (title, first_idx)) in sections.iter().enumerate() {
+        let end = sections.get(si + 1).map(|(_, i)| *i).unwrap_or(options.len());
+        println!("\n  {}", ui::cyan(&format!("-- {} --", title)));
+        for (i, (label, _)) in options[*first_idx..end].iter().enumerate() {
+            println!("  {}  {}", ui::bold(&format!("[{}]", first_idx + i + 1)), label);
+        }
     }
     println!("  {}  {}", ui::bold("[r]"), ui::dim("back to network list"));
     println!("  {}  {}", ui::bold("[q]"), ui::dim("quit"));

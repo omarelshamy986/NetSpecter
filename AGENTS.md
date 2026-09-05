@@ -53,5 +53,5 @@ crates/gui/src/frontend/       ← GUI screens (pages/, connections/)
 crates/cli/src/main.rs         ← the terminal front-end
 ```
 
-Dormant-but-complete modules awaiting wiring: `karma`, `hid`, `ble`, `caplet`
-(see ARCHITECTURE.md §Modules that exist but are dormant).
+Dormant-but-complete modules awaiting wiring: `hid`, `ble`
+(karma and caplet went live — see ARCHITECTURE.md §Module status map).
