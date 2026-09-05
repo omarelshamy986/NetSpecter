@@ -119,16 +119,27 @@ mod tests {
 
     #[test]
     fn wpa2_baseline_is_moderate() {
-        // A neutral BSSID (not in any default-PIN family): WPA2 alone is 30
-        // (psk_attackable) + wps_eligible gives the generic WPS path —
-        // no algorithm bonus, no clients, no material.
+        // Neutral BSSID (no vendor-PIN family): WPA2 is psk_attackable (+30),
+        // wps_eligible adds the generic WPS path (+25) and the generic factory
+        // PINs candidates apply to every router (+10) = 65. That IS moderate:
+        // strong starting target, no instant-win algorithm.
         let ap = AP {
             bssid: "DE:AD:BE:EF:00:11".into(),
             ..base_ap()
         };
         let s = score_ap(&ap);
-        assert!((25..=45).contains(&s.score), "score {}", s.score);
-        assert!(!s.reasons.iter().any(|r| r.contains("default-PIN")));
+        assert_eq!(s.score, 65, "reasons: {:?}", s.reasons);
+        assert!(!s.reasons.iter().any(|r| r.contains("instant win")));
+
+        // Pure WPA3-SAE strips the WPS eligibility: 10 + generic PINs? no —
+        // Wpa3Sae is not wps_eligible, so just the SAE floor.
+        let sae = AP {
+            bssid: "DE:AD:BE:EF:00:11".into(),
+            privacy: "WPA3-SAE".into(),
+            ..base_ap()
+        };
+        let s2 = score_ap(&sae);
+        assert_eq!(s2.score, 10, "reasons: {:?}", s2.reasons);
     }
 
     #[test]
