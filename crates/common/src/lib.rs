@@ -14,6 +14,7 @@ pub mod cracker;
 pub mod crypto;
 pub mod deps;
 pub mod encryption;
+pub mod risk_score;
 pub mod handshake;
 pub mod hid;
 pub mod ipc;

@@ -451,6 +451,31 @@ fn dispatch(request: Request) -> (Response, bool) {
             (Response::WpsOutcome(wps_outcome_wire(outcome)), false)
         }
 
+        Request::StartKarma { iface, config } => {
+            match backend::karma_runner::launch(&iface, config) {
+                Ok(session) => (Response::KarmaSession(Some(session)), false),
+                Err(e) => (err(&format!("karma: {e}")), false),
+            }
+        }
+
+        Request::StopKarma => {
+            match backend::karma_runner::stop() {
+                Ok(()) => (Response::Ok, false),
+                Err(e) => (err(&format!("karma: {e}")), false),
+            }
+        }
+
+        Request::KarmaSnapshot => {
+            (Response::KarmaSession(backend::karma_runner::snapshot()), false)
+        }
+
+        Request::RunCaplet { path } => {
+            match backend::caplet_runner::run_caplet_file(&path) {
+                Ok(report) => (Response::CapletReport(report), false),
+                Err(e) => (err(&format!("caplet failed: {e}")), false),
+            }
+        }
+
         Request::TryWpsDefaultPins { bssid, essid } => {
             if !is_valid_mac(&bssid) {
                 return (err("invalid BSSID for WPS attack"), false);

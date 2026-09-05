@@ -1,5 +1,6 @@
 pub mod app;
 pub mod autopwn_runner;
+pub mod caplet_runner;
 pub mod capture;
 pub mod corroborate;
 pub mod deauth;
@@ -7,6 +8,7 @@ pub mod evil_twin;
 pub mod hidden;
 pub mod hidden_beacon;
 pub mod interface;
+pub mod karma_runner;
 pub mod pcap;
 pub mod pmkid;
 pub mod raw_socket;
@@ -25,6 +27,8 @@ pub mod wps;
 pub use app::*;
 #[allow(unused_imports)]
 pub use autopwn_runner::*;
+#[allow(unused_imports)]
+pub use caplet_runner::*;
 #[allow(unused_imports)]
 pub use capture::*;
 #[allow(unused_imports)]

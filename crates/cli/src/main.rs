@@ -406,6 +406,7 @@ fn show_targets(aps: &[AP]) {
         ui::bold("SEC"),
         ui::bold("CLIENTS")
     );
+    println!("{}", ui::dim("  (RISK column: 0-100 attackability score - 60+ = strong starting target)"));
     println!("{}", ui::dim("  ─────────────────────────────────────────────────────────────"));
     for (i, ap) in sorted.iter().enumerate() {
         let hidden = ap.hidden || ap.essid.is_empty() || ap.essid.starts_with("<hidden");
@@ -432,7 +433,16 @@ fn show_targets(aps: &[AP]) {
         } else {
             ui::dim("0")
         };
-        println!("  {:<3} {:<24} {:<12} {:<4} {:<6} {:<7} {}", i + 1, name, ap.bssid, ap.channel, pw, ap.privacy, cl);
+        // Risk score - the advisor column.
+        let risk = netspecter_common::risk_score::score_ap(ap);
+        let rs = if risk.score >= 60 {
+            ui::green(&format!("{:>3}", risk.score))
+        } else if risk.score >= 35 {
+            ui::yellow(&format!("{:>3}", risk.score))
+        } else {
+            ui::dim(&format!("{:>3}", risk.score))
+        };
+        println!("  {:<3} {:<24} {:<12} {:<4} {:<6} {:<7} {}  RISK {}", i + 1, name, ap.bssid, ap.channel, pw, ap.privacy, cl, rs);
     }
 }
 
@@ -445,6 +455,17 @@ fn ap_details(ap: &AP) {
     println!("  Channel    : {} ({} GHz band)", ap.channel, ap.band);
     println!("  Signal     : {} dBm", ap.power);
     println!("  Security   : {}", ui::bold(&ap.privacy));
+    let risk = netspecter_common::risk_score::score_ap(ap);
+    println!("  Attack path : {} / 100", if risk.score >= 60 {
+        ui::green(&risk.score.to_string())
+    } else if risk.score >= 35 {
+        ui::yellow(&risk.score.to_string())
+    } else {
+        ui::red(&risk.score.to_string())
+    });
+    for r in &risk.reasons {
+        println!("    - {}", ui::dim(r));
+    }
     println!("  Handshake  : {}", if ap.handshake { ui::green("captured ✓") } else { ui::dim("not yet") });
     if !ap.clients.is_empty() {
         println!("{}", ui::bold(&format!("  Clients ({}):", ap.clients.len())));
@@ -506,6 +527,8 @@ fn attack_menu(agent: &mut Agent, ap: &AP, iface: &str) {
     options.push(("WPS: Pixie Dust (offline, seconds when it works)", format!("wps-pixie:{}", ap.bssid)));
     options.push(("WPS: online PIN brute (hours)", format!("wps-brute:{}", ap.bssid)));
     options.push(("Evil Twin captive portal (social engineering)", format!("evil-twin:{}", ap.bssid)));
+    options.push(("Run a caplet script (automated scenario)", "caplet-run".to_string()));
+    options.push(("KARMA: impersonate probed networks (listen then answer)", "karma".to_string()));
     options.push(("Deauth only (kick clients off)", format!("deauth:{}", ap.bssid)));
     options.push(("Crack: run wordlists against the captured material", format!("crack:{}", ap.bssid)));
     options.push(("Auto-Pwn EVERYTHING (the one-button pipeline)", "auto-pwn".into()));
@@ -623,6 +646,64 @@ fn run_attack(agent: &mut Agent, ap: &AP, iface: &str, action: &str) {
                 ghz_5: true,
                 channels: Some(ap.channel.clone()),
             });
+        }
+        "karma" => {
+            header("KARMA / MANA");
+            println!("{}", ui::yellow("  listens for clients probing their saved networks, then answers"));
+            println!("{}", ui::yellow("  every probe with 'yes, that's me' - clients auto-associate to us."));
+            println!("{}", ui::dim("  every client in range must be in your authorized scope."));
+            let secs = prompt(&format!("learning window in seconds (Enter = 30):"));
+            let secs: u64 = secs.trim().parse().unwrap_or(30);
+            let config = netspecter_common::karma::KarmaConfig {
+                learning_window_secs: secs,
+                ..Default::default()
+            };
+            match agent.call(Request::StartKarma { iface: iface.into(), config }) {
+                Ok(Response::KarmaSession(Some(session))) => {
+                    ok(&format!(
+                        "learning done: {} probed name(s) heard, {} VAP(s) up",
+                        session.probes.len(),
+                        session.vaps.len()
+                    ));
+                    for v in &session.vaps {
+                        println!("  {} {}", ui::cyan(&v.essid), ui::dim(&v.iface));
+                    }
+                    println!("{}", ui::dim("  (press Enter to stop and tear down)"));
+                    let _ = std::io::stdin().read_line(&mut String::new());
+                    let _ = agent.call(Request::StopKarma);
+                    ok("karma torn down");
+                }
+                Ok(Response::KarmaSession(None)) => warn("agent returned an empty session"),
+                Ok(_) => warn("unexpected response from agent"),
+                Err(e) => warn(&e.to_string()),
+            }
+        }
+        "caplet-run" => {
+            header("CAPLET SCRIPT");
+            let path = prompt("path to .cap file (blank = list built-in presets):");
+            let path = if path.is_empty() {
+                list_caplet_presets();
+                return;
+            } else {
+                path
+            };
+            match agent.call(Request::RunCaplet { path }) {
+                Ok(Response::CapletReport(rep)) => {
+                    ok(&format!(
+                        "caplet done: {} executed, {} failed, {} skipped",
+                        rep.executed, rep.failed, rep.skipped
+                    ));
+                    for r in &rep.results {
+                        if r.ok {
+                            ok(&format!("  {}: {}", r.action, r.message));
+                        } else {
+                            warn(&format!("  {}: {}", r.action, r.message));
+                        }
+                    }
+                }
+                Ok(_) => warn("unexpected response from agent"),
+                Err(e) => warn(&e.to_string()),
+            }
         }
         "wps-default" => {
             header("WPS DEFAULT PINS");
@@ -859,6 +940,29 @@ fn run_attack(agent: &mut Agent, ap: &AP, iface: &str, action: &str) {
     println!();
     println!("{}", ui::dim("press Enter for the attack menu…"));
     wait_enter();
+}
+
+/// Show the built-in caplet presets shipped under `caplets/`.
+fn list_caplet_presets() {
+    let dir = std::path::Path::new("caplets");
+    println!("{}", ui::cyan("built-in presets (run with: <name>.cap from the repo root):"));
+    match std::fs::read_dir(dir) {
+        Ok(entries) => {
+            let mut names: Vec<String> = entries
+                .flatten()
+                .filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("cap"))
+                .filter_map(|e| e.file_name().to_str().map(str::to_string))
+                .collect();
+            names.sort();
+            if names.is_empty() {
+                println!("{}", ui::dim("  (none found next to the binary - clone the repo for presets)"));
+            }
+            for n in names {
+                println!("  {}", ui::cyan(&n));
+            }
+        }
+        Err(_) => println!("{}", ui::dim("  (caplets/ not found - run from the repo root)")),
+    }
 }
 
 fn run_wps(agent: &mut Agent, req: Request) {

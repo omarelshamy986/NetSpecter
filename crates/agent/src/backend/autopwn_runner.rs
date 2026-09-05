@@ -276,6 +276,20 @@ fn crack_with_hashcat(
     None
 }
 
+/// Public bridge for the caplet engine: every persisted hashcat-ready capture.
+pub fn collected_hashfiles() -> Vec<std::path::PathBuf> {
+    collect_hc22000_files()
+}
+
+/// Public bridge for the caplet engine: run the wordlist chain over one
+/// hashfile, returning the recovered password when a wordlist hits.
+pub fn try_crack_hashfile(
+    hashfile: &std::path::Path,
+    wordlists: &[std::path::PathBuf],
+) -> Option<String> {
+    crack_with_hashcat(hashfile, wordlists)
+}
+
 fn run_attack_job(
     job: &AttackJob,
     timeout: Duration,

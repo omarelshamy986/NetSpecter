@@ -4,6 +4,8 @@
 //! [`Request`] or [`Response`].
 
 use crate::autopwn::AutoPwnConfig;
+use crate::caplet::CapletReport;
+use crate::karma::{KarmaConfig, KarmaSession};
 use crate::types::*;
 use crate::wps::WpsOutcome;
 use serde::Serialize;
@@ -171,6 +173,27 @@ pub enum Request {
         config: AutoPwnConfig,
     },
 
+    /// Execute a caplet script (file path on the agent's machine — the CLI
+    /// passes a path it controls; the agent runs it top-to-bottom and returns
+    /// the full CapletReport).
+    RunCaplet {
+        path: String,
+    },
+
+    /// Start a KARMA/Mana session: learn probe requests for the configured
+    /// window, then impersonate the loudest ESSIDs with open VAPs.
+    /// Blocks until the learning window completes and the VAPs are up.
+    StartKarma {
+        iface: String,
+        config: KarmaConfig,
+    },
+
+    /// Tear down the running KARMA session (kills each hostapd by PID).
+    StopKarma,
+
+    /// Peek at the live KARMA session (probes learned so far, VAPs, creds).
+    KarmaSnapshot,
+
     /// Poll the running Auto-Pwn pipeline for events since the last
     /// poll. Returns an empty batch when the pipeline is idle.
     PollAutoPwn,
@@ -252,6 +275,8 @@ pub enum Response {
 
     /// Reply to any WPS attack request — the outcome record.
     WpsOutcome(WpsOutcome),
+    CapletReport(CapletReport),
+    KarmaSession(Option<KarmaSession>),
 
     /// Reply to [`Request::GenerateReport`] — the paths of the rendered
     /// files (HTML, JSON, optional PDF).

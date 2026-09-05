@@ -1,4 +1,4 @@
--s dir ./target/debug/netspecter ./target/debug/netspecter-agent ./target/debug/netspecter-cli ./crates/gui/icons/app_icon.png package portals README.md LICENSE
+-s dir ./target/debug/netspecter ./target/debug/netspecter-agent ./target/debug/netspecter-cli ./crates/gui/icons/app_icon.png package caplets portals README.md LICENSE
 --name netspecter
 --license MIT
 --version 2.2.0
