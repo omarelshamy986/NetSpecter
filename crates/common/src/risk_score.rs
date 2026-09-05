@@ -119,8 +119,16 @@ mod tests {
 
     #[test]
     fn wpa2_baseline_is_moderate() {
-        let s = score_ap(&base_ap());
+        // A neutral BSSID (not in any default-PIN family): WPA2 alone is 30
+        // (psk_attackable) + wps_eligible gives the generic WPS path —
+        // no algorithm bonus, no clients, no material.
+        let ap = AP {
+            bssid: "DE:AD:BE:EF:00:11".into(),
+            ..base_ap()
+        };
+        let s = score_ap(&ap);
         assert!((25..=45).contains(&s.score), "score {}", s.score);
+        assert!(!s.reasons.iter().any(|r| r.contains("default-PIN")));
     }
 
     #[test]
