@@ -11,7 +11,6 @@
 //! 3. `stop` kills every hostapd by PID and removes the configs — the
 //!    precise-teardown rule, same as evil-twin.
 
-use lazy_static::lazy_static;
 use netspecter_common::karma::{KarmaConfig, KarmaSession, KarmaVap};
 
 use std::process::{Child, Command};
@@ -129,7 +128,7 @@ pub fn snapshot() -> Option<KarmaSession> {
 /// `(essid, transmitter-mac)`. Directed probes carry a real BSSID and are
 /// not KARMA material.
 fn extract_broadcast_probe(raw: &[u8]) -> Option<(String, String)> {
-    use libwifi::Frame;
+    use libwifi::{Addresses, Frame};
     let parsed = libwifi::parse_frame(raw, false).ok()?;
     let probe = match parsed {
         Frame::ProbeRequest(p) => p,

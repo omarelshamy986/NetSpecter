@@ -652,7 +652,7 @@ fn run_attack(agent: &mut Agent, ap: &AP, iface: &str, action: &str) {
             println!("{}", ui::yellow("  listens for clients probing their saved networks, then answers"));
             println!("{}", ui::yellow("  every probe with 'yes, that's me' - clients auto-associate to us."));
             println!("{}", ui::dim("  every client in range must be in your authorized scope."));
-            let secs = prompt(&format!("learning window in seconds (Enter = 30):"));
+            let secs = prompt("learning window in seconds (Enter = 30):");
             let secs: u64 = secs.trim().parse().unwrap_or(30);
             let config = netspecter_common::karma::KarmaConfig {
                 learning_window_secs: secs,

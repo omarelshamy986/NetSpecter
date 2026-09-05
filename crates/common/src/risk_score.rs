@@ -111,7 +111,6 @@ mod tests {
             essid: "TestNet".into(),
             bssid: "C8:3A:35:12:34:56".into(),
             channel: "6".into(),
-            vendor: "Test".into(),
             privacy: "WPA2".into(),
             hidden: false,
             handshake: false,
@@ -148,7 +147,6 @@ mod tests {
             power: "-45".into(),
             first_time_seen: String::new(),
             last_time_seen: String::new(),
-            vendor: "Test".into(),
             probes: String::new(),
         }
     }
