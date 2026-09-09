@@ -1190,9 +1190,60 @@ fn offer_install(missing: &[String]) -> ! {
     }
 }
 
+// ─────────────────────────── CLI arguments ───────────────────────────
+
+/// What the operator asked for on the command line. Parsed by the pure
+/// `parse_cli_args` below so it stays unit-testable without spawning anything.
+#[derive(Debug, PartialEq, Eq)]
+enum ArgsAction {
+    /// Launch the interactive guided flow (default, no flags).
+    Interactive,
+    /// Print help text and exit.
+    Help,
+    /// Print the version and exit.
+    Version,
+}
+
+fn parse_cli_args(argv: &[String]) -> ArgsAction {
+    for arg in argv.iter().skip(1) {
+        match arg.as_str() {
+            "-h" | "--help" | "help" => return ArgsAction::Help,
+            "-V" | "--version" | "version" => return ArgsAction::Version,
+            _ => {}
+        }
+    }
+    ArgsAction::Interactive
+}
+
+fn print_help() {
+    println!("netspecter-cli — guided WiFi audit (authorized testing only)");
+    println!();
+    println!("USAGE:");
+    println!("  netspecter-cli [OPTIONS]");
+    println!();
+    println!("OPTIONS:");
+    println!("  -h, --help       print this help and exit");
+    println!("  -V, --version    print the version and exit");
+    println!();
+    println!("With no options, launches the interactive flow:");
+    println!("  pick a wireless card → scan → pick a target → attack");
+}
+
 // ─────────────────────────── main ───────────────────────────
 
 fn main() {
+    match parse_cli_args(&std::env::args().collect::<Vec<_>>()) {
+        ArgsAction::Help => {
+            print_help();
+            return;
+        }
+        ArgsAction::Version => {
+            println!("netspecter-cli {}", netspecter_common::VERSION);
+            return;
+        }
+        ArgsAction::Interactive => {}
+    }
+
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn")).init();
 
     println!();
@@ -1310,5 +1361,61 @@ fn main() {
             "q" | "quit" => goodbye(),
             _ => warn("pick a number from the menu"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn argv(words: &[&str]) -> Vec<String> {
+        words.iter().map(|w| w.to_string()).collect()
+    }
+
+    #[test]
+    fn no_args_means_interactive() {
+        assert_eq!(parse_cli_args(&argv(&["netspecter-cli"])), ArgsAction::Interactive);
+    }
+
+    #[test]
+    fn help_flags() {
+        for flag in ["-h", "--help", "help"] {
+            assert_eq!(
+                parse_cli_args(&argv(&["netspecter-cli", flag])),
+                ArgsAction::Help,
+                "flag: {flag}"
+            );
+        }
+    }
+
+    #[test]
+    fn version_flags() {
+        for flag in ["-V", "--version", "version"] {
+            assert_eq!(
+                parse_cli_args(&argv(&["netspecter-cli", flag])),
+                ArgsAction::Version,
+                "flag: {flag}"
+            );
+        }
+    }
+
+    #[test]
+    fn unknown_flags_stay_interactive() {
+        assert_eq!(
+            parse_cli_args(&argv(&["netspecter-cli", "--scan", "-x"])),
+            ArgsAction::Interactive
+        );
+    }
+
+    #[test]
+    fn first_flag_wins() {
+        assert_eq!(
+            parse_cli_args(&argv(&["netspecter-cli", "--version", "--help"])),
+            ArgsAction::Version
+        );
+        assert_eq!(
+            parse_cli_args(&argv(&["netspecter-cli", "--help", "--version"])),
+            ArgsAction::Help
+        );
     }
 }

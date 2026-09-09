@@ -148,9 +148,14 @@ pub fn score_ap(ap: &AP, wps_advertised: bool) -> ScoredTarget {
         breakdown.push((format!("{client_count} clients"), client_pts));
     }
 
-    // ── Hidden recovered bonus ──
+    // ── Hidden marker ──
+    // An unrecovered hidden AP cannot be targeted directly (no ESSID for
+    // directed attacks), so it scores exactly like its visible twin — the
+    // label below is only an evidence trail for the report. It must never
+    // outrank an actionable target on hidden-ness alone. The real bonus
+    // lands in `apply_hidden_recovery` once the ESSID is known.
     if hidden {
-        breakdown.push(("hidden network".into(), 10));
+        breakdown.push(("hidden network (unrecovered)".into(), 0));
     }
 
     let score = breakdown.iter().map(|(_, p)| *p).sum();
@@ -169,6 +174,8 @@ pub fn score_ap(ap: &AP, wps_advertised: bool) -> ScoredTarget {
 }
 
 /// Rank a scan snapshot: score every AP, sort descending.
+/// Ties break on BSSID ascending so reports are deterministic no matter
+/// in which order the scanner happened to observe the APs.
 pub fn rank_targets(aps: &[AP]) -> Vec<ScoredTarget> {
     // WPS advertisement is beacon evidence the scan record doesn't carry;
     // only mark it when the caller has real WPS-IE data (score_ap is public
@@ -177,11 +184,18 @@ pub fn rank_targets(aps: &[AP]) -> Vec<ScoredTarget> {
         .iter()
         .map(|ap| score_ap(ap, false))
         .collect();
-    targets.sort_by_key(|a| std::cmp::Reverse(a.score));
+    targets.sort_by(|a, b| {
+        std::cmp::Reverse(a.score)
+            .cmp(&std::cmp::Reverse(b.score))
+            .then_with(|| a.bssid.cmp(&b.bssid))
+    });
     targets
 }
 
 /// Attach a recovered ESSID to its scored target (by BSSID).
+/// A recovered target becomes directly attackable, so it also earns the
+/// "ESSID recovered" bonus here (the unrecovered marker from `score_ap`
+/// stays as the evidence trail).
 pub fn apply_hidden_recovery(targets: &mut [ScoredTarget], recoveries: &[(String, String)]) {
     for t in targets.iter_mut() {
         if let Some((_bssid, essid)) = recoveries.iter().find(|(b, _)| b == &t.bssid) {
@@ -189,9 +203,15 @@ pub fn apply_hidden_recovery(targets: &mut [ScoredTarget], recoveries: &[(String
             if t.essid == "<hidden>" {
                 t.essid = essid.clone();
             }
+            t.score += ESSID_RECOVERED_BONUS;
+            t.score_breakdown
+                .push(("ESSID recovered".into(), ESSID_RECOVERED_BONUS));
         }
     }
 }
+
+/// Bonus for a hidden AP whose ESSID was recovered (now directly attackable).
+pub const ESSID_RECOVERED_BONUS: u32 = 15;
 
 /// Pipeline-wide configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -407,16 +427,26 @@ mod tests {
     }
 
     #[test]
-    fn hidden_ap_gets_bonus_and_essid_placeholder() {
+    fn hidden_unrecovered_gets_marker_without_bonus() {
+        // Unrecovered hidden APs cannot be targeted directly: the marker is
+        // an evidence trail only (0 pts) and must never outrank an
+        // otherwise identical visible target.
         let t = score_ap(&ap("", "WPA2", "-55", 1, true), false);
         assert_eq!(t.essid, "<hidden>");
-        assert!(t.score_breakdown.iter().any(|(k, _)| k == "hidden network"));
+        let marker = t
+            .score_breakdown
+            .iter()
+            .find(|(k, _)| k == "hidden network (unrecovered)");
+        assert_eq!(marker.map(|(_, p)| *p), Some(0));
+        let visible = score_ap(&ap("V", "WPA2", "-55", 1, false), false);
+        assert!(t.score <= visible.score);
     }
 
     #[test]
     fn apply_hidden_recovery_fills_essid() {
         let aps = vec![ap("X", "WPA2", "-55", 0, true)];
         let mut targets = rank_targets(&aps);
+        let before = targets[0].score;
         let bssid = targets[0].bssid.clone();
         apply_hidden_recovery(
             &mut targets,
@@ -424,6 +454,26 @@ mod tests {
         );
         assert_eq!(targets[0].essid, "SecretNet");
         assert_eq!(targets[0].hidden_recovery.as_deref(), Some("SecretNet"));
+        // Recovery makes the target directly attackable: bonus applied.
+        assert_eq!(targets[0].score, before + ESSID_RECOVERED_BONUS);
+        assert!(targets[0]
+            .score_breakdown
+            .iter()
+            .any(|(k, _)| k == "ESSID recovered"));
+    }
+
+    #[test]
+    fn rank_tie_breaks_on_bssid_ascending() {
+        // Same class/signal/clients → identical scores; order must follow
+        // BSSID ascending regardless of scan observation order.
+        let mut a = ap("AA", "WPA2", "-60", 1, false);
+        a.bssid = "aa:bb:cc:dd:ee:02".into();
+        let mut b = ap("BB", "WPA2", "-60", 1, false);
+        b.bssid = "aa:bb:cc:dd:ee:01".into();
+        assert_eq!(score_ap(&a, false).score, score_ap(&b, false).score);
+        let ranked = rank_targets(&[a, b]);
+        assert_eq!(ranked[0].bssid, "aa:bb:cc:dd:ee:01");
+        assert_eq!(ranked[1].bssid, "aa:bb:cc:dd:ee:02");
     }
 
     #[test]

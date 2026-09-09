@@ -144,6 +144,8 @@ sudo ./target/release/netspecter-agent &
 
 Or via the prebuilt `.deb` / `.rpm` from the [Releases](../../releases) page (Debian / RedHat / Arch).
 
+> 📖 **دليل التشغيل السريع بالعربي:** [`docs/quickstart-ar.md`](docs/quickstart-ar.md)
+
 ---
 
 ## 🖼 Screenshots
@@ -188,6 +190,7 @@ NetSpecter
 │   ├── report-html.askama        # Pentest report (HTML)
 │   └── report-pdf.askama         # Pentest report (PDF)
 ├── docs/
+│   ├── quickstart-ar.md     # دليل التشغيل السريع بالعربي
 │   ├── adapters.md          # Wireless adapter compatibility
 │   ├── wizard.md            # Smart-wizard walkthrough
 │   ├── evil-twin.md         # Evil-twin operator manual
