@@ -1,0 +1,35 @@
+[package]
+name = "netspecter"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Advanced WiFi security auditing suite — PMKID, WPS, WEP, WPA3 detection, Evil Twin, hidden SSID discovery, smart wizard UI, HTML/PDF reports. Authorized pentesting only."
+homepage.workspace = true
+repository.workspace = true
+documentation.workspace = true
+keywords = ["networking", "pentest", "wifi-security", "wpa", "wps", "evil-twin", "pmkid", "fluxion", "audit", "linux"]
+readme.workspace = true
+
+[[bin]]
+name = "netspecter"
+path = "src/main.rs"
+
+[dependencies]
+netspecter-common.workspace = true
+gtk4 = { version = "0.11", features = ["v4_6"] }
+serde.workspace = true
+serde_json.workspace = true
+toml = "1"
+regex.workspace = true
+chrono.workspace = true
+lazy_static.workspace = true
+nix.workspace = true
+tokio.workspace = true
+ureq = { version = "3", features = ["json"] }
+log.workspace = true
+env_logger.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+handlebars.workspace = true
+pulldown-cmark.workspace = true
+askama.workspace = true

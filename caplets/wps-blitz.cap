@@ -1,0 +1,8 @@
+# WPS-focused: scan, then hammer every WPS path on the first target.
+# NULL PIN -> vendor default PINs -> Pixie Dust (the agent tries them in
+# cheapest-first order inside the WPS actions).
+run scan
+sleep 20
+run wps-pixie
+run pmkid
+run crack-queue

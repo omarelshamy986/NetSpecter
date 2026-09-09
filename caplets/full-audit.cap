@@ -1,0 +1,9 @@
+# The full one-button engagement as a script: discover, recover hidden,
+# auto-attack everything ranked, crack what was captured, report.
+run scan
+sleep 45
+run hidden-recovery
+run attack-all
+sleep 120
+run crack-queue
+run report

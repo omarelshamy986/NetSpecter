@@ -1,0 +1,30 @@
+[package]
+name = "netspecter-common"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared types and IPC protocol between the NetSpecter GUI and its privileged agent"
+homepage.workspace = true
+repository.workspace = true
+documentation.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+which.workspace = true
+libwifi = "0.5"
+radiotap = "1"
+sha1 = "0.11"
+chrono.workspace = true
+uuid.workspace = true
+hmac.workspace = true
+sha2.workspace = true
+pbkdf2.workspace = true
+hex.workspace = true
+rand.workspace = true
+tokio.workspace = true
+async-trait.workspace = true
+reqwest.workspace = true
+num-bigint.workspace = true
+num-integer.workspace = true
+num-traits.workspace = true

@@ -1,0 +1,127 @@
+name: docker
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linter:
+    name: linter
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create builder image
+        run: docker build . -t netspecter_builder
+
+      - name: Clippy
+        run: >
+          docker run --rm
+          -v ${{ github.workspace }}:/workspace
+          netspecter_builder
+          cargo clippy --all --all-features -- -D warnings
+        continue-on-error: true  # advisory while the codebase is rebranded; ci.yml gates the build
+
+      - name: Format
+        run: >
+          docker run --rm
+          -v ${{ github.workspace }}:/workspace
+          netspecter_builder
+          cargo fmt --all -- --check
+        continue-on-error: true  # advisory — formatting is not gating
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
+        include:
+        - arch: x86_64
+          runner: ubuntu-24.04
+        - arch: aarch64
+          runner: ubuntu-24.04-arm
+
+    name: build ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    needs: linter
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create builder image
+        run: >
+          docker build .
+          -t netspecter_builder
+
+      - name: Build project
+        run: >
+          docker run --rm
+          -v ${{ github.workspace }}:/workspace
+          netspecter_builder
+
+      - name: Save debian artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: netspecter_${{ matrix.arch }}.deb
+          path: ./netspecter_${{ matrix.arch }}.deb
+          if-no-files-found: warn
+
+      - name: Save redhat artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: netspecter_${{ matrix.arch }}.rpm
+          path: ./netspecter_${{ matrix.arch }}.rpm
+          if-no-files-found: warn
+
+      - name: Save archlinux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: netspecter_${{ matrix.arch }}.pkg.tar.zst
+          path: ./netspecter_${{ matrix.arch }}.pkg.tar.zst
+          if-no-files-found: warn
+
+  release:
+    name: release
+    runs-on: ubuntu-24.04
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+          merge-multiple: true
+
+      - name: Get release version
+        id: 'tag'
+        run: echo "tag=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Rename packages
+        env:
+          VERSION: ${{ steps.tag.outputs.tag }}
+        run: |
+          cd ./artifacts
+          for arch in x86_64 aarch64; do
+            for ext in deb rpm pkg.tar.zst; do
+              if [ -f "netspecter_${arch}.${ext}" ]; then
+                mv "netspecter_${arch}.${ext}" "netspecter_${VERSION}_${arch}.${ext}"
+              fi
+            done
+          done
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          files: |
+            ./artifacts/netspecter_*

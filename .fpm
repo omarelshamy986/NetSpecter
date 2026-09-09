@@ -1,0 +1,29 @@
+-s dir ./target/debug/netspecter ./target/debug/netspecter-agent ./target/debug/netspecter-cli ./crates/gui/icons/app_icon.png package caplets portals README.md LICENSE
+--name netspecter
+--license MIT
+--version 2.2.0
+--description "Advanced WiFi security auditing suite - PMKID, WPS, WEP, WPA3 detection, Evil Twin, hidden SSID discovery, smart wizard UI, HTML/PDF reports. Authorized pentesting only."
+--url "https://github.com/AbD02018/NetSpecter"
+--maintainer "AbD02018 <ana.abdo2013@gmail.com>"
+
+--provides netspecter
+--conflicts netspecter
+
+--depends bash
+--depends xterm
+--depends iw
+--depends macchanger
+--depends aircrack-ng
+--depends adwaita-icon-theme
+
+target/debug/netspecter=/usr/bin/netspecter
+target/debug/netspecter-agent=/usr/bin/netspecter-agent
+target/debug/netspecter-cli=/usr/bin/netspecter-cli
+crates/gui/icons/app_icon.png=/usr/share/pixmaps/netspecter.png
+
+package/.desktop=/usr/share/applications/com.abdo.netspecter.desktop
+portals/=/usr/share/netspecter/portals/
+package/.policy=/usr/share/polkit-1/actions/org.freedesktop.policykit.netspecter.policy
+
+README.md=/usr/share/doc/netspecter/README.md
+LICENSE=/usr/share/doc/netspecter/LICENSE

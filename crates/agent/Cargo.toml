@@ -1,0 +1,47 @@
+[package]
+name = "netspecter-agent"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Privileged agent process for NetSpecter: owns interface, scan, deauth, capture, PMKID, WPS, Evil-Twin and report operations"
+homepage.workspace = true
+repository.workspace = true
+documentation.workspace = true
+
+[[bin]]
+name = "netspecter-agent"
+path = "src/main.rs"
+
+[dependencies]
+netspecter-common.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+log.workspace = true
+env_logger.workspace = true
+thiserror.workspace = true
+nix.workspace = true
+lazy_static.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+sha2.workspace = true
+hmac.workspace = true
+pbkdf2.workspace = true
+hex.workspace = true
+rand.workspace = true
+tokio.workspace = true
+async-trait.workspace = true
+reqwest.workspace = true
+csv = "1.4"
+ctrlc = { version = "3.5", features = ["termination"] }
+libwifi = "0.5"
+radiotap = "1"
+libc = "0.2"
+handlebars.workspace = true
+pulldown-cmark.workspace = true
+
+[build-dependencies]
+serde = { version = "1", features = ["derive"] }
+csv = "1.4"
+[dev-dependencies]
+tempfile = "3"
+sha1 = "0.11"

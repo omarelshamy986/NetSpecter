@@ -1,0 +1,7 @@
+# Quick recon: 30s scan + hidden names + a JSON snapshot.
+# Zero packets sent toward clients - safe first pass on a new site.
+set scan.duration 30
+run scan
+sleep 30
+run hidden-recovery
+run report
